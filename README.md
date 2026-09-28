@@ -6,7 +6,10 @@ Malaysia-first management for independent martial arts clubs. Each club will hav
 
 Implemented locally, with no live database connected yet:
 
-- **Auth:** Supabase SSR sessions and password sign-in/sign-out. There's no public registration or password reset yet.
+- **Auth:** Supabase SSR sessions with email and password.
+  - Self-service sign-up (`/signup`) requires email confirmation; the full name is stored in user metadata.
+  - Sign-in and sign-out, and a forgot/reset password flow (`/forgot-password` → email → `/reset-password`).
+  - Email links land on `/auth/confirm`.
 - **Club tenancy (`supabase/migrations/`):** clubs, club memberships (`owner` role), branches and students.
   - Row Level Security is on every table, with membership checked through `private.is_club_member()`.
   - Clubs are created atomically with their owner through `create_club()`.
@@ -29,8 +32,9 @@ With blank variables, the app shows `/setup`. Configure only a **separate Rantin
 
 - `NEXT_PUBLIC_SUPABASE_URL`: Ranting project URL.
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: Ranting publishable API key, never a service-role/secret key.
+- `SITE_URL` (server-only): public origin used in auth email links, e.g. `https://app.example.com`, with no trailing slash. It's optional locally (defaults to `http://localhost:3000`) and **required in production**.
 
-Keep actual values in ignored `.env.local`. Restart after changes. Set Supabase Site URL to `http://localhost:3000` for local testing. Create a confirmed test account via Supabase Auth administration; sign in at `/login`. There is currently no public registration, password-reset or email flow. Do not send invitations or notifications for this setup. Apply the database migration before using club features (see below). Do not onboard real clubs yet.
+Keep actual values in ignored `.env.local`. Restart after changes. Configure Supabase Auth as described in [Supabase Auth settings](#supabase-auth-settings), then create an account at `/signup`. Apply the database migration before using club features (see below). Do not onboard real clubs yet.
 
 ### Database migrations
 
@@ -42,6 +46,23 @@ Migrations live in `supabase/migrations/` and follow the Supabase CLI naming con
 Never edit a migration that has already been applied; add a new one. After applying, regenerate types with `supabase gen types typescript --linked > src/lib/supabase/database.types.ts` (the current file is hand-written to match).
 
 Session cookies are handled by `@supabase/ssr`; proxy refreshes the session, pages/actions verify users, and responses use `private, no-store`. No privileged API key is used. See [Supabase SSR guidance](https://supabase.com/docs/guides/auth/server-side/creating-a-client?framework=nextjs) and [shadcn manual setup](https://ui.shadcn.com/docs/installation/manual).
+
+## Supabase Auth settings
+
+Set these in the Supabase dashboard for the Ranting project. The app doesn't change them itself.
+
+1. **Authentication → URL Configuration:**
+   - **Site URL:** `http://localhost:3000` while developing; change it to the production origin at launch.
+   - **Redirect URLs:** add `http://localhost:3000/auth/confirm`, then the production equivalent (`https://<your-domain>/auth/confirm`) at launch.
+2. **Authentication → Sign In / Providers → Email:**
+   - Keep **Confirm email** on.
+   - Set the minimum password length to 8 or less so it doesn't conflict with the app's policy.
+3. **Authentication → Emails → Templates:** replace the link in these two templates so confirmation works from any device or browser:
+   - **Confirm signup:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/workspaces/new`
+   - **Reset Password:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password`
+
+   The default templates also work through `/auth/confirm?code=…`, but only in the browser where the request was made.
+4. The built-in email sender is rate-limited and meant for testing. Configure custom SMTP (for example Resend, once approved) before real clubs sign up.
 
 ## Checks
 
@@ -61,6 +82,6 @@ These tests don't replace verification against a designated Supabase test projec
 
 ## Hosting direction
 
-Standard Node.js deployment on Hostinger managed Node.js/Web Apps. Verify Node 24 availability before deployment. Install with `npm ci`, build with `npm run build`, start with `npm start` (platform `PORT` supported). Configure the two environment variable names above at build/runtime, use HTTPS and the production Supabase Site URL, and disable shared CDN caching for authenticated routes. Hostinger provisioning and capacity are unverified. No static export or Vercel-specific services.
+Standard Node.js deployment on Hostinger managed Node.js/Web Apps. Verify Node 24 availability before deployment. Install with `npm ci`, build with `npm run build`, start with `npm start` (platform `PORT` supported). Configure the three environment variable names above at build/runtime (`SITE_URL` = the production origin), use HTTPS, add the production URLs to Supabase Auth (see below), and disable shared CDN caching for authenticated routes. Hostinger provisioning and capacity are unverified. No static export or Vercel-specific services.
 
 Before real onboarding: apply the migration to a confirmed project and re-run the isolation checks there, confirm the wider role matrix, verify database/storage backup and restore procedures and retention rules. No storage buckets or upload policies exist yet. Start with Supabase Free; no upgrade has been purchased. No Git remote is configured.

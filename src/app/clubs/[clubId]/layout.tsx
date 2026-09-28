@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { assets } from "@/lib/assets";
 import { listMyClubs, requireClub } from "@/lib/clubs";
-import { signOut } from "@/app/login/actions";
+import { signOut } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
 import { ClubNav } from "@/components/clubs/club-nav";
 import { ClubSwitcher } from "@/components/clubs/club-switcher";

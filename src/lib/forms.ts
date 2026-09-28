@@ -4,10 +4,10 @@ import type { z } from "zod";
 export type FieldErrors = Partial<Record<string, string[]>>;
 export type FormState = { error?: string; success?: string; fieldErrors?: FieldErrors; values?: Record<string, string> };
 
-/** Plain string form values, used to refill fields after a failed submission. */
+/** Plain string form values, used to refill fields after a failed submission. Passwords are never echoed back. */
 export function formValues(form: FormData) {
   const values: Record<string, string> = {};
-  for (const [key, value] of form) if (typeof value === "string" && !key.startsWith("$ACTION")) values[key] = value;
+  for (const [key, value] of form) if (typeof value === "string" && !key.startsWith("$ACTION") && !/password/i.test(key)) values[key] = value;
   return values;
 }
 

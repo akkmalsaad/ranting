@@ -48,5 +48,30 @@ export const studentSchema = z.object({
 
 export type StudentInput = z.output<typeof studentSchema>;
 
+// --- Accounts -------------------------------------------------------------------------------
+// Supabase Auth rejects passwords over 72 characters; keep the dashboard minimum length at 8 or less.
+export const PASSWORD_MIN = 8;
+export const PASSWORD_MAX = 72;
+
+const email = z.string(required).trim().toLowerCase().max(254, "Use at most 254 characters.").pipe(z.email("Enter a valid email address."));
+export const passwordSchema = z.string(required)
+  .min(PASSWORD_MIN, `Use at least ${PASSWORD_MIN} characters.`)
+  .max(PASSWORD_MAX, `Use at most ${PASSWORD_MAX} characters.`)
+  .regex(/[A-Za-z]/, "Include at least one letter.")
+  .regex(/\d/, "Include at least one number.");
+const confirmed = <T extends { password: string; confirm_password: string }>(value: T) => value.password === value.confirm_password;
+const mismatch = { path: ["confirm_password"], message: "Passwords do not match." };
+
+export const signInSchema = z.object({ email, password: z.string(required).min(1, "Enter your password.").max(PASSWORD_MAX, `Use at most ${PASSWORD_MAX} characters.`) });
+export const signUpSchema = z.object({ full_name: name, email, password: passwordSchema, confirm_password: z.string(required) }).refine(confirmed, mismatch);
+export const passwordResetRequestSchema = z.object({ email });
+export const newPasswordSchema = z.object({ password: passwordSchema, confirm_password: z.string(required) }).refine(confirmed, mismatch);
+
+/** Only same-site absolute paths are allowed as post-auth destinations (prevents open redirects). */
+export function safeNextPath(value: unknown, fallback = "/workspaces") {
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || value.includes("\\") || /[\u0000-\u001f]/.test(value)) return fallback;
+  return value;
+}
+
 export function pageNumber(value: unknown) { const n = Number(value); return Number.isSafeInteger(n) && n > 0 ? Math.min(n, 100000) : 1; }
 export function searchTerm(value: unknown) { return typeof value === "string" ? value.trim().replace(/[%_\\,()"]/g, "").slice(0, 80) : ""; }

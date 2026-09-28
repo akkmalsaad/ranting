@@ -18,3 +18,9 @@ export const requireUser = cache(async () => {
   if (error || !data.user) redirect("/login");
   return { db, user: data.user };
 });
+/** Sends already signed-in visitors away from sign-in/sign-up screens. */
+export async function redirectIfSignedIn(to = "/workspaces") {
+  const db = await createClient();
+  const { data } = await db.auth.getUser();
+  if (data.user) redirect(to);
+}

@@ -4,12 +4,34 @@ Updated 2026-09-28, Asia/Kuala_Lumpur (UTC+08:00). Agent: Claude Code.
 
 ## Current task and state
 
-This session implemented the user-approved plan: club tenancy with RLS, the club setup flow, the dashboard shell, branches and students. **All five phases are done locally.** Branch `main`, tracking `origin/main` (https://github.com/akkmalsaad/ranting.git). The work was committed in `dc75579`. No app deployment has been made.
+**Latest session (2026-09-28): self-service accounts.** Built and verified locally; committed and pushed in the commit that follows `f87e8dc`. The remote Supabase project was **not** changed: the dashboard settings in README "Supabase Auth settings" still have to be applied by the user.
 
-**Remote database (2026-09-28, user-authorised):**
-- The repo is linked to the Ranting Supabase project `namrqbnneljtidyzpshn`; `supabase/.temp/` is git-ignored.
-- `supabase db push` applied `20260928120000_club_tenancy.sql`, and `supabase migration list` shows local = remote.
-- No other remote changes were made: no seeds, users or data.
+- **Routes:**
+  - `/signup` (full name, email, password, confirm) → `/signup/check-email`, which includes a resend-confirmation form.
+  - `/forgot-password` → email → `/reset-password`.
+  - `/auth/confirm` route handler: handles `token_hash` + `type` (`verifyOtp`) or `code` (`exchangeCodeForSession`), then redirects to a safe `next`. Recovery links always go to `/reset-password`, and failures go to `/login?error=link`.
+- **Login page:** now uses the shared `AuthShell`, links to sign-up and to forgot password, and redirects signed-in users away (as does `/signup`). The "provisioned by administrator" copy is removed.
+- **Server actions:** moved to `src/app/auth/actions.ts` (`signIn`, `signUp`, `resendConfirmation`, `requestPasswordReset`, `updatePassword`, `signOut`).
+  - The full name is stored as `user_metadata.full_name`.
+  - An existing email is detected through Supabase's empty `identities`.
+  - Reset and resend give the same answer whether or not an account exists, except for rate limits.
+- **Shared logic:**
+  - `src/lib/validation.ts`: `signUpSchema`, `signInSchema`, `newPasswordSchema`, `passwordResetRequestSchema`, `passwordSchema` and `safeNextPath`.
+  - `src/lib/auth-errors.ts`: friendly messages for existing email, weak or same password, unconfirmed email, invalid login, rate limits (429 and `over_*`), invalid email and expired session.
+  - `src/lib/site-url.ts` builds email links from `SITE_URL`, never from the Host header.
+  - `formValues` no longer echoes any `*password*` field back to the client.
+- **Checks:**
+  - Lint and typecheck: pass.
+  - `npm test`: 32/32 pass (8 new auth tests).
+  - Build: pass.
+  - `next start` smoke test against the real project, GET requests only: all auth pages render; `/reset-password` with no session shows "Link expired"; `/auth/confirm` with no or invalid parameters and `next=//evil.example` → 307 `/login?error=link`.
+  - Not tested: the real sign-up, email delivery, confirmation and reset. They would create users and send email; the user should test them after applying the dashboard settings.
+- **Decisions to confirm:**
+  - Password policy: 8–72 characters with a letter and a number.
+  - New env var `SITE_URL`: server-only, required in production.
+- **Next step:** the user applies the README "Supabase Auth settings" (Site URL, redirect URL `/auth/confirm`, the two email templates, minimum password length), then tests sign-up → confirm → create club, and forgot → reset. Custom SMTP is needed before real onboarding.
+
+### Previous session: tenancy, setup, dashboard, branches, students
 
 ### What exists
 
@@ -76,7 +98,7 @@ This session implemented the user-approved plan: club tenancy with RLS, the club
 3. Update the Supabase Auth Site URL / redirect URLs for local development and, later, production.
 4. Future schema changes: add a new migration; applying remotely still needs explicit authorization.
 
-Deferred and still open: staff/parent roles and invitations, verified guardian links, signup and password reset, classes, fees, the final language and design tokens.
+Deferred and still open: staff/parent roles and invitations, verified guardian links, classes, fees, the final language and design tokens.
 
 ## Decision history
 
@@ -89,4 +111,5 @@ Deferred and still open: staff/parent roles and invitations, verified guardian l
 - 2026-09-28 (user): Guardian name and phone are contact-only student fields.
 - 2026-09-28 (user): `archived_at` is separate from active/inactive status. Gender is optional (male/female).
 - 2026-09-28 (user): PGlite dev dependency approved for RLS tests.
+- 2026-09-28 (user): Self-service sign-up with email confirmation and password reset approved; the full name lives in auth user metadata (no profile table yet). The password policy and `SITE_URL` were chosen by the agent and need confirming.
 - All of these are recorded in AGENTS.md §13.

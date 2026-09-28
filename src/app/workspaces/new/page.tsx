@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Building2, ShieldCheck } from "lucide-react";
 import { assets } from "@/lib/assets";
 import { listMyClubs } from "@/lib/clubs";
-import { signOut } from "@/app/login/actions";
+import { signOut } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
 import { ClubForm } from "@/components/clubs/club-form";
 import { createClub } from "../actions";
