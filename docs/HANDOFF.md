@@ -4,11 +4,16 @@ Updated 2026-09-28, Asia/Kuala_Lumpur (UTC+08:00). Agent: Claude Code.
 
 ## Current task and state
 
-This session implemented the user-approved plan: club tenancy with RLS, the club setup flow, the dashboard shell, branches and students. **All five phases are done locally.** Branch `main`, base commit `9f8808a`; everything is uncommitted, including Codex's earlier foundation increment. No pushes, deployments or remote Supabase changes were made.
+This session implemented the user-approved plan: club tenancy with RLS, the club setup flow, the dashboard shell, branches and students. **All five phases are done locally.** Branch `main`, tracking `origin/main` (https://github.com/akkmalsaad/ranting.git). The work was committed in `dc75579`. No app deployment has been made.
+
+**Remote database (2026-09-28, user-authorised):**
+- The repo is linked to the Ranting Supabase project `namrqbnneljtidyzpshn`; `supabase/.temp/` is git-ignored.
+- `supabase db push` applied `20260928120000_club_tenancy.sql`, and `supabase migration list` shows local = remote.
+- No other remote changes were made: no seeds, users or data.
 
 ### What exists
 
-- **Migration `supabase/migrations/20260928120000_club_tenancy.sql`** (Supabase CLI naming; **not applied to any environment**):
+- **Migration `supabase/migrations/20260928120000_club_tenancy.sql`** (applied to Ranting project `namrqbnneljtidyzpshn`):
   - Tables: `clubs`, `club_members`, `branches`, `students`, plus the enum `club_role` (`owner` only).
   - `private.is_club_member(club_id, roles[])`: SECURITY DEFINER, stable, `search_path=''`. Every policy uses it.
   - `public.create_club()`: SECURITY DEFINER RPC that inserts the club and the owner membership in one transaction. Clubs have no insert policy, and `club_members` has no write policies.
@@ -18,7 +23,10 @@ This session implemented the user-approved plan: club tenancy with RLS, the club
     - A trigger blocks new assignments to archived branches.
     - Active branch names are unique per club, case-insensitive.
   - All FKs are indexed, plus `club_members(user_id, club_id)` and a student list index. Rollback notes are in the file header.
-- **Types:** `src/lib/supabase/database.types.ts` is hand-written in generated format. Regenerate after applying the migration.
+- **Types:** `src/lib/supabase/database.types.ts` is generated from the live schema (`supabase gen types typescript --linked --schema public`); don't hand-edit it.
+  - `gender`/`status` are typed as `string` (check constraints, not enums), and `Update` lists every column (column grants aren't reflected).
+  - Code narrows these values through `src/lib/validation.ts`.
+  - No code changes were needed after regenerating.
 - **Setup flow:**
   - `/workspaces` sends users with no club to `/workspaces/new` and everyone else to `/clubs/<first>`.
   - `createClub` (in `src/app/workspaces/actions.ts`) calls the RPC.
@@ -55,18 +63,18 @@ This session implemented the user-approved plan: club tenancy with RLS, the club
   - 8 validation tests, including the Malaysia date boundary.
 - `npm run build` (Turbopack): pass. The earlier EPERM didn't recur. All authenticated routes are dynamic.
 - `next start` smoke test without env: every route redirects to `/setup`. The redirect is streamed in-page because root `loading.tsx` exists, so it isn't an HTTP 307; this was already the case for existing pages.
+- After applying the migration and regenerating types: lint, typecheck, 24/24 tests and the build all pass again (the build now loads `.env.local`).
 - **Not verified:**
-  - Live Supabase: PostgREST behaviour, the RPC over HTTP, the `branches!students_club_id_branch_id_fkey` embed and `.or()` search syntax, and sign-in → create club → CRUD flows.
+  - Live app flows against the applied schema: PostgREST behaviour, the RPC over HTTP, the `branches!students_club_id_branch_id_fkey` embed and `.or()` search syntax, and sign-in → create club → CRUD flows.
   - Visual desktop/mobile inspection (no browser tool available).
-  - There's no Supabase project or `.env.local`.
 - `git diff --check`: only the pre-existing trailing blank line in CLAUDE.md.
 
 ## Blockers and exact next step
 
-1. The user needs to create or confirm the separate Ranting Supabase project and fill in `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`).
-2. **With explicit authorization and a confirmed target**, apply the migration (`supabase db push` or the SQL editor), then regenerate types.
-3. Manually test: sign-in → create club → add branch → add, search, edit and archive a student. Also test with a second account to confirm 404 on the first account's club URLs.
-4. Proposed commit: `feat: club tenancy with RLS, club setup, dashboard, branches and students`.
+1. Create two confirmed test users in Supabase Auth (user action; there's no signup flow).
+2. Run `npm run dev` and manually test: sign-in → create club → add branch → add, search, edit and archive a student. Test with the second account to confirm 404 on the first account's club URLs.
+3. Update the Supabase Auth Site URL / redirect URLs for local development and, later, production.
+4. Future schema changes: add a new migration; applying remotely still needs explicit authorization.
 
 Deferred and still open: staff/parent roles and invitations, verified guardian links, signup and password reset, classes, fees, the final language and design tokens.
 
