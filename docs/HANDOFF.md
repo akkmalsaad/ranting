@@ -4,7 +4,31 @@ Updated 2026-09-28, Asia/Kuala_Lumpur (UTC+08:00). Agent: Claude Code.
 
 ## Current task and state
 
-**Latest session (2026-09-28): Continue with Google.** Built and verified locally; committed and pushed in the commit that follows `e9221f5`. The remote Supabase project and Google Cloud were **not** changed.
+**Latest session (2026-09-28): fix for /login "This field is required".**
+
+- **Root cause (regression from `e9221f5`):**
+  - `parseForm` validated `formValues(form)`, which drops every `*password*` field so passwords aren't echoed back.
+  - So the password was always missing, and zod reported "This field is required" in the browser and on the server. React's post-action form reset then cleared the password.
+  - This broke `/login`, `/signup` and `/reset-password`; `/forgot-password` and resend were unaffected.
+  - The earlier test missed it because it only asserted a submission that was expected to fail.
+- **Fix:**
+  - `src/lib/forms.ts`: new `formEntries()` (all string fields except `$ACTION*`) is what gets validated. `formValues()` (password-redacted) is used only for refill.
+  - `ActionForm`:
+    - It now passes the Server Action to `useActionState` unwrapped, so forms submitted before hydration post to the action (progressive enhancement).
+    - Client zod validation moved to `onSubmit`, reading `new FormData(form)` from the DOM (so autofill and paste are covered), and it cancels the submit only when invalid.
+    - It no longer adds `values` itself; actions return `values` where a refill matters (auth, club, branch and student actions already do).
+  - The archive and restore forms use `.bind` instead of client closures, so they work without JS too.
+- **Checked:** the inputs' `name`, `type` and `autocomplete` attributes are correct (`email`, `current-password`, `new-password`); the inputs are uncontrolled (`defaultValue`); the email is refilled after a failed sign-in and the password never is.
+- **Tests:** `tests/auth.test.ts` adds regression tests that submit valid FormData (with a `$ACTION_ID_*` field) through `parseForm` for sign-in, sign-up and reset, plus email-kept-but-password-dropped on failure.
+- **Checks:**
+  - Lint, typecheck and build: pass.
+  - `npm test`: 36/36 pass. Against the pre-fix `forms.ts`, the new test fails with `{"password":["This field is required."]}`, which confirms it reproduces the bug.
+  - No-JS check on `next start`: posting the server-rendered `/login` form (its hidden `$ACTION_*` fields plus a nonexistent email and a wrong password) returns "Incorrect email or password", with the email refilled and no password echoed.
+- **Not tested:** a real browser, including Safari autofill (no browser tool is available). The user should re-test `/login` in Safari.
+
+### Previous session: Continue with Google
+
+**Continue with Google (2026-09-28).** Built and verified locally; committed and pushed in the commit that follows `e9221f5`. The remote Supabase project and Google Cloud were **not** changed.
 
 - **Button and action:** `GoogleSignIn` (in `src/components/auth/google-button.tsx`) puts the button and an "or" divider above the email form on `/login` and `/signup`. It's a form posting to the `signInWithGoogle` server action, which calls `signInWithOAuth({ provider: "google", redirectTo: SITE_URL/auth/callback })`. The SSR client uses PKCE, so the verifier is stored in a cookie.
 - **`/auth/callback`:**

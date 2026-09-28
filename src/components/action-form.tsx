@@ -1,8 +1,8 @@
 "use client";
-import { createContext, useActionState, useContext } from "react";
+import { createContext, useActionState, useContext, useState } from "react";
 import type { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { formValues, parseForm, type FormState } from "@/lib/forms";
+import { parseForm, type FormState } from "@/lib/forms";
 
 export type { FormState };
 export type FormAction = (state: FormState, data: FormData) => Promise<FormState>;
@@ -11,21 +11,29 @@ const FormStateContext = createContext<FormState>({});
 export const useFormState = () => useContext(FormStateContext);
 
 /**
- * Server Action form with pending, error and success states. When `schema` is given,
- * the same schema the server uses runs first in the browser; the server still validates.
+ * Server Action form with pending, error and success states.
+ *
+ * `action` is handed to useActionState unwrapped so the server-rendered form posts to the Server
+ * Action even before hydration (progressive enhancement). Inputs are uncontrolled, so autofilled
+ * and pasted values are submitted from the DOM. When `schema` is given, it runs in onSubmit against
+ * the form's actual FormData and only cancels submission when invalid; the server always re-validates.
  */
 export function ActionForm({ action, children, submit = "Save changes", danger = false, schema, footer }: { action: FormAction; children?: React.ReactNode; submit?: string; danger?: boolean; schema?: z.ZodType; footer?: React.ReactNode }) {
-  const [state, formAction, pending] = useActionState<FormState, FormData>(async (previous, data) => {
-    if (schema) {
-      const parsed = parseForm(schema, data);
-      if (!parsed.ok) return parsed.state;
-    }
-    const next = await action(previous, data);
-    return next.error && !next.values ? { ...next, values: formValues(data) } : next;
-  }, {});
+  const [serverState, formAction, pending] = useActionState<FormState, FormData>(action, {});
+  const [clientState, setClientState] = useState<FormState | null>(null);
+  const state = clientState ?? serverState;
+
+  function validate(event: React.FormEvent<HTMLFormElement>) {
+    if (!schema) return;
+    const parsed = parseForm(schema, new FormData(event.currentTarget));
+    if (parsed.ok) return setClientState(null);
+    event.preventDefault();
+    setClientState(parsed.state);
+  }
+
   return (
     <FormStateContext value={state}>
-      <form action={formAction} className="space-y-5">
+      <form action={formAction} onSubmit={validate} className="space-y-5">
         <fieldset disabled={pending} className="space-y-5">{children}</fieldset>
         {state.error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{state.error}</p>}
         {state.success && <p role="status" className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900">{state.success}</p>}

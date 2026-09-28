@@ -56,6 +56,41 @@ test("Supabase auth errors map to friendly messages", () => {
   assert.equal(authErrorState({ code: "unexpected_failure", status: 500 }, "sign-up").error, AUTH_MESSAGES.generic);
 });
 
+const formData = (fields: Record<string, string>) => {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(fields)) form.set(key, value);
+  // React adds framework fields to Server Action submissions; they must be ignored.
+  form.set("$ACTION_ID_abc123", "");
+  return form;
+};
+
+// Regression: password fields were redacted *before* validation, so every valid sign-in failed with
+// "This field is required" on the password and the field was cleared.
+test("valid sign-in, sign-up and reset submissions parse from FormData", () => {
+  const signIn = parseForm(signInSchema, formData({ email: " Owner@Example.com ", password: "Correct1pass" }));
+  assert.equal(signIn.ok, true, JSON.stringify(!signIn.ok && signIn.state.fieldErrors));
+  if (signIn.ok) {
+    assert.deepEqual(signIn.data, { email: "owner@example.com", password: "Correct1pass" });
+    assert.equal(signIn.values.password, undefined);
+  }
+  const register = parseForm(signUpSchema, formData(signUp));
+  assert.equal(register.ok, true, JSON.stringify(!register.ok && register.state.fieldErrors));
+  if (register.ok) assert.equal(register.data.password, "Silat2026");
+  const reset = parseForm(newPasswordSchema, formData({ password: "Silat2026", confirm_password: "Silat2026" }));
+  assert.equal(reset.ok, true, JSON.stringify(!reset.ok && reset.state.fieldErrors));
+});
+
+test("a failed sign-in keeps the email for refill but never the password", () => {
+  const result = parseForm(signInSchema, formData({ email: "owner@example.com", password: "" }));
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.state.values?.email, "owner@example.com");
+    assert.equal(result.state.values?.password, undefined);
+    assert.ok(result.state.fieldErrors?.password);
+    assert.equal(result.state.fieldErrors?.email, undefined);
+  }
+});
+
 test("passwords are never echoed back in form state", () => {
   const form = new FormData();
   for (const [key, value] of Object.entries({ ...signUp, confirm_password: "different1" })) form.set(key, value);
