@@ -89,28 +89,67 @@ export type Database = {
       }
       clubs: {
         Row: {
+          address_line1: string | null
+          address_line2: string | null
+          association: string | null
+          city: string | null
           created_at: string
           created_by: string | null
           discipline: string
+          email: string | null
           id: string
+          logo_path: string | null
           name: string
+          phone: string | null
+          postcode: string | null
+          ros_number: string | null
+          sports_commissioner_number: string | null
+          ssm_number: string | null
+          state: string | null
           updated_at: string
+          year_founded: number | null
         }
         Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          association?: string | null
+          city?: string | null
           created_at?: string
           created_by?: string | null
           discipline: string
+          email?: string | null
           id?: string
+          logo_path?: string | null
           name: string
+          phone?: string | null
+          postcode?: string | null
+          ros_number?: string | null
+          sports_commissioner_number?: string | null
+          ssm_number?: string | null
+          state?: string | null
           updated_at?: string
+          year_founded?: number | null
         }
         Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          association?: string | null
+          city?: string | null
           created_at?: string
           created_by?: string | null
           discipline?: string
+          email?: string | null
           id?: string
+          logo_path?: string | null
           name?: string
+          phone?: string | null
+          postcode?: string | null
+          ros_number?: string | null
+          sports_commissioner_number?: string | null
+          ssm_number?: string | null
+          state?: string | null
           updated_at?: string
+          year_founded?: number | null
         }
         Relationships: []
       }

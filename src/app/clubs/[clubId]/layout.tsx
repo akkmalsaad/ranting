@@ -7,6 +7,7 @@ import { signOut } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
 import { ClubNav } from "@/components/clubs/club-nav";
 import { ClubSwitcher } from "@/components/clubs/club-switcher";
+import { ClubLogo } from "@/components/clubs/club-logo";
 
 export default async function ClubLayout({ children, params }: LayoutProps<"/clubs/[clubId]">) {
   const { clubId } = await params;
@@ -19,7 +20,7 @@ export default async function ClubLayout({ children, params }: LayoutProps<"/clu
           <form action={signOut} className="lg:hidden"><Button variant="ghost" className="min-h-9 px-3 py-2">Sign out</Button></form>
         </div>
         <div className="my-4 flex items-center gap-3 lg:my-8">
-          <Image src={assets.club} alt="" className="size-10 rounded-xl object-cover" />
+          <ClubLogo club={club} className="size-10 rounded-xl object-cover" />
           <div className="min-w-0">
             <p className="truncate font-semibold">{club.name}</p>
             <p className="truncate text-xs text-slate-500">{club.discipline}</p>

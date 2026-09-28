@@ -12,5 +12,5 @@ export async function createClub(_: FormState, form: FormData): Promise<FormStat
   // create_club inserts the club and the caller's owner membership in one transaction.
   const { data: clubId, error } = await db.rpc("create_club", { p_name: parsed.data.name, p_discipline: parsed.data.discipline });
   if (error || !clubId) return { error: "We couldn't create your club. Please try again.", values: parsed.values };
-  redirect(`/clubs/${clubId}`);
+  redirect(`/clubs/${clubId}?welcome=1`);
 }

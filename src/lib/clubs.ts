@@ -7,6 +7,10 @@ import { idSchema } from "@/lib/validation";
 // All helpers are wrapped in React cache(), so a layout and page rendering in the same request
 // share one auth check and one membership lookup.
 
+/** Club identity plus the optional profile (one row, so cheap to fetch with the membership check). */
+const CLUB_COLUMNS = "id, name, discipline, ros_number, sports_commissioner_number, ssm_number, association, address_line1, address_line2, postcode, city, state, phone, email, year_founded, logo_path";
+export type Club = NonNullable<Awaited<ReturnType<typeof requireClub>>["club"]>;
+
 /** Clubs the signed-in user belongs to. RLS limits rows to the user's memberships. */
 export const listMyClubs = cache(async () => {
   const { db } = await requireUser();
@@ -22,7 +26,7 @@ export const listMyClubs = cache(async () => {
  */
 export const requireClub = cache(async (clubId: string) => {
   const { db } = await clubClient(clubId);
-  const { data: club, error } = await db.from("clubs").select("id, name, discipline").eq("id", clubId).maybeSingle();
+  const { data: club, error } = await db.from("clubs").select(CLUB_COLUMNS).eq("id", clubId).maybeSingle();
   if (error) throw new Error("Unable to load this club.");
   if (!club) notFound();
   return { db, club };

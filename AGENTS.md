@@ -173,6 +173,7 @@ The next agent must inspect git and code again; a handoff is context, not proof.
 - 2026-09-28, guardians: `students.guardian_name` / `guardian_phone` are emergency-contact text only and must never grant access. Verified parent links will be separate tables.
 - 2026-09-28, archiving: `archived_at` is separate from student status (`active`/`inactive`). The UI archives branches and students and never hard-deletes them.
 - 2026-09-28, Supabase project: Ranting uses project `pdsisgkcigtjipitwqxc` in `ap-southeast-1` (Singapore), linked through the Supabase CLI. Schema changes are applied with `supabase db push` only after explicit authorization; types are regenerated with `supabase gen types typescript --linked --schema public`.
+- 2026-09-28, club files: logos live in the private `club-logos` bucket under `<club_id>/`. Storage RLS gives members read access and owners write access (via `private.club_id_from_object_name` + `private.is_club_member`); logos are PNG/JPEG/WebP only (no SVG), 2 MB max, and are served through a membership-checked route that issues 60-second signed URLs. Use this pattern for future club-scoped files.
 - 2026-09-28, testing: RLS/tenant isolation is tested with `@electric-sql/pglite` (dev only) running the real migrations over `tests/support/supabase-shim.sql`. That doesn't replace testing against a designated Supabase test project.
 
 Official loading references (verified 2026-09-28):

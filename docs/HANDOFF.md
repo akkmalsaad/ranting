@@ -4,7 +4,39 @@ Updated 2026-09-28, Asia/Kuala_Lumpur (UTC+08:00). Agent: Claude Code.
 
 ## Current task and state
 
-**Latest session (2026-09-28): moved to the Singapore Supabase project.** Committed and pushed in the commit that follows `3050559`.
+**Latest session (2026-09-28): club onboarding modal, club profile and Settings.** Committed and pushed in the commit that follows `fa6bdf7`.
+
+- **Migration `20260928130000_club_profile_and_logos.sql`:** applied to `pdsisgkcigtjipitwqxc` with the user's explicit approval (dry run first; local = remote for both migrations).
+  - Adds nullable `clubs` columns with DB checks: `ros_number`, `sports_commissioner_number`, `ssm_number`, `association`, `address_line1/2`, `postcode` (5 digits), `city`, `state` (16 slugs), `phone`, `email`, `year_founded`, `logo_path` (must be under the club's own folder).
+  - Extends the owner-only column update grants. RLS is unchanged; profile edits go through the existing owner-only `clubs_update` policy, so no new RPC.
+  - Creates the private `club-logos` bucket (2 MB; png/jpeg/webp) with Storage RLS: select for any member, insert/update/delete for owners, all scoped by `private.club_id_from_object_name(name)` (the first folder as a uuid, else null).
+- **Types:** the regenerated `database.types.ts` was identical to the hand-updated version.
+- **UX:**
+  - `/workspaces/new` shows `OnboardingShell` (an inert preview) plus a `Modal` (native `<dialog>`, full-screen on mobile). There's no Esc or close for a first club; owners of existing clubs get Cancel.
+  - Step 1 `createClub` → `/clubs/<id>?welcome=1`, where the dashboard shows the step 2 modal (`ClubProfileForm`, "Finish" / "Skip for now").
+  - The dashboard's `ProfileCard` lists the missing optional sections.
+  - New Settings page `/clubs/<id>/settings` (in the nav) edits everything, including logo replace and remove.
+- **Server:**
+  - `settings/actions.ts` has `completeClubProfile` and `updateClubSettings`. Both call `requireClub` and parse with shared zod (`clubProfileSchema`, `clubSettingsSchema`).
+  - Logo handling: size check, byte-signature check (`src/lib/images.ts`; SVG rejected), then upload to a new unique path through the user's session, update the row, and remove the old object. A failed update removes the new upload.
+  - `next.config.ts`: `serverActions.bodySizeLimit: "3mb"`.
+  - Logo route `/clubs/[clubId]/logo`: membership through RLS, then a 302 to a 60-second signed URL (`private, no-store`).
+- **Validation:** Malaysian phone `(+60|60|0)` plus 8–10 digits, 5-digit postcode, email, year 1900–current (Malaysia date), state enum, registration numbers limited to letters, digits and `-/.()` characters.
+- **Tests:** 53/53 pass. There are 9 new validation and logo tests. There are also 8 new PGlite RLS tests: a profile update by a non-member affects 0 rows; malformed values are rejected by DB checks; the logo path must be in the club's folder; the bucket config; owner CRUD; a non-member can't read, write or delete; non-uuid folders, other buckets and anon are denied. A Storage shim was added to `tests/support/supabase-shim.sql`.
+- **Other checks:**
+  - Lint, typecheck and build: pass.
+  - Smoke test (signed out): the logo route returns 404 for a bad id and 307 → /login otherwise; settings and onboarding redirect to /login.
+  - Anon can't read the bucket metadata (400).
+  - Not tested: signed-in onboarding, upload and settings in a real browser (no browser tool or session).
+- **Decisions to confirm:**
+  - Logo read access for all members, write access for owners.
+  - SVG logos are excluded.
+  - State stored as slugs.
+  - Malaysian phone format required for the club phone (student phones still use the looser format).
+
+### Previous session: moved to the Singapore Supabase project
+
+**Moved to the Singapore Supabase project (2026-09-28).** Committed and pushed in the commit that follows `3050559`.
 
 - **New project:** the user created Ranting project **`pdsisgkcigtjipitwqxc` (ap-southeast-1, Singapore)**, updated `.env.local` and linked the CLI. Verified: the linked ref and the `.env.local` URL both point to the new ref.
 - **Migration:** `supabase db push` (dry run first) applied `20260928120000_club_tenancy.sql`; `supabase migration list` shows local = remote.

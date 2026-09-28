@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, LayoutDashboard, MapPin, Users, Wallet } from "lucide-react";
+import { CalendarDays, LayoutDashboard, MapPin, Settings, Users, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -10,6 +10,7 @@ const items = [
   { href: "/students", label: "Students", icon: Users },
   { href: "/classes", label: "Classes", icon: CalendarDays, soon: true },
   { href: "/fees", label: "Fees", icon: Wallet, soon: true },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function ClubNav({ clubId }: { clubId: string }) {

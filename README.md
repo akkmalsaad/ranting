@@ -14,7 +14,15 @@ Implemented locally, with no live database connected yet:
 - **Club tenancy (`supabase/migrations/`):** clubs, club memberships (`owner` role), branches and students.
   - Row Level Security is on every table, with membership checked through `private.is_club_member()`.
   - Clubs are created atomically with their owner through `create_club()`.
-- **Club setup:** a user without a club is sent to `/workspaces/new`; otherwise to their club dashboard.
+- **Club setup (onboarding):** a user without a club lands on `/workspaces/new`, a preview of the club workspace behind a modal that can't be dismissed.
+  - Step 1 (club name, martial art style) creates the club.
+  - Step 2 (optional registration numbers, affiliation, address, contact, year founded, logo) runs over the new dashboard, with "Skip for now".
+  - The modal becomes a full-screen sheet on mobile.
+  - The dashboard shows "Complete your club profile" until the optional details are filled in; owners can edit everything in **Settings**.
+- **Club logos:** stored in the private `club-logos` Storage bucket under `<club_id>/`.
+  - Members can read and owners can write, enforced by Storage RLS.
+  - Uploads are 2 MB max, PNG/JPEG/WebP only, and the file content is checked on the server.
+  - Logos are served through `/clubs/<id>/logo`, which checks membership and redirects to a 60-second signed URL.
 - **Club workspace:** dashboard, branches (add/edit/archive/restore), and students (search, filters, pagination, add/edit/archive/restore). There's a club switcher for owners of several clubs. Classes and Fees are labelled "not available yet".
 
 **Not implemented:** staff/parent roles, invitations, verified guardian links, classes, attendance, fees, payments, uploads, announcements and reports. Guardian name/phone on a student are contact details only.

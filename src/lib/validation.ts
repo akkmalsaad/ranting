@@ -28,6 +28,50 @@ export const phoneSchema = z.string().transform((value) => value.replace(/[\s\-(
 
 export const clubSchema = z.object({ name, discipline: text(2, 80) });
 
+// --- Club profile (all optional) ------------------------------------------------------------
+export const malaysianStates = [
+  { value: "johor", label: "Johor" },
+  { value: "kedah", label: "Kedah" },
+  { value: "kelantan", label: "Kelantan" },
+  { value: "melaka", label: "Melaka" },
+  { value: "negeri-sembilan", label: "Negeri Sembilan" },
+  { value: "pahang", label: "Pahang" },
+  { value: "perak", label: "Perak" },
+  { value: "perlis", label: "Perlis" },
+  { value: "pulau-pinang", label: "Pulau Pinang" },
+  { value: "sabah", label: "Sabah" },
+  { value: "sarawak", label: "Sarawak" },
+  { value: "selangor", label: "Selangor" },
+  { value: "terengganu", label: "Terengganu" },
+  { value: "kuala-lumpur", label: "W.P. Kuala Lumpur" },
+  { value: "labuan", label: "W.P. Labuan" },
+  { value: "putrajaya", label: "W.P. Putrajaya" },
+] as const;
+const stateValues = malaysianStates.map((s) => s.value) as [string, ...string[]];
+
+/** Malaysian mobile/landline: 0… or +60… / 60…, stored as digits with an optional leading +. */
+export const malaysianPhoneSchema = z.string().transform((value) => value.replace(/[\s\-().]/g, "")).pipe(z.string().regex(/^(\+?60|0)\d{8,10}$/, "Enter a Malaysian phone number, e.g. 03-1234 5678 or 012-345 6789."));
+const registration = z.string().max(50, "Use at most 50 characters.").regex(/^[A-Za-z0-9][A-Za-z0-9 ()./-]*$/, "Use letters, numbers, spaces and - / . ( ) only.").min(2, "Use at least 2 characters.");
+export const clubProfileSchema = z.object({
+  ros_number: optional(registration),
+  sports_commissioner_number: optional(registration),
+  ssm_number: optional(registration),
+  association: optional(text(2, 120)),
+  address_line1: optional(z.string().max(200, "Use at most 200 characters.")),
+  address_line2: optional(z.string().max(200, "Use at most 200 characters.")),
+  postcode: optional(z.string().regex(/^\d{5}$/, "Postcodes have 5 digits.")),
+  city: optional(text(2, 100)),
+  state: optional(z.enum(stateValues, "Choose a state or federal territory.")),
+  phone: optional(malaysianPhoneSchema),
+  email: optional(z.string().toLowerCase().max(254, "Use at most 254 characters.").pipe(z.email("Enter a valid email address."))),
+  year_founded: optional(z.string().regex(/^\d{4}$/, "Enter a 4-digit year.").transform(Number)
+    .refine((year) => year >= 1900, "Enter a year from 1900.")
+    .refine((year) => year <= Number(todayInMalaysia().slice(0, 4)), "The founding year can't be in the future.")),
+});
+export type ClubProfileInput = z.output<typeof clubProfileSchema>;
+/** Settings page: the required club details plus the optional profile. */
+export const clubSettingsSchema = z.object({ name, discipline: text(2, 80) }).extend(clubProfileSchema.shape);
+
 export const branchSchema = z.object({ name, address: z.preprocess(blank, z.string().max(500, "Use at most 500 characters.")) });
 
 export const studentStatuses = ["active", "inactive"] as const;
