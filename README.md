@@ -10,6 +10,7 @@ Implemented locally, with no live database connected yet:
   - Self-service sign-up (`/signup`) requires email confirmation; the full name is stored in user metadata.
   - Sign-in and sign-out, and a forgot/reset password flow (`/forgot-password` → email → `/reset-password`).
   - Email links land on `/auth/confirm`.
+  - "Continue with Google" (Supabase OAuth, PKCE) returns to `/auth/callback`, then goes to `/workspaces`, which routes to club setup or the dashboard.
 - **Club tenancy (`supabase/migrations/`):** clubs, club memberships (`owner` role), branches and students.
   - Row Level Security is on every table, with membership checked through `private.is_club_member()`.
   - Clubs are created atomically with their owner through `create_club()`.
@@ -53,7 +54,7 @@ Set these in the Supabase dashboard for the Ranting project. The app doesn't cha
 
 1. **Authentication → URL Configuration:**
    - **Site URL:** `http://localhost:3000` while developing; change it to the production origin at launch.
-   - **Redirect URLs:** add `http://localhost:3000/auth/confirm`, then the production equivalent (`https://<your-domain>/auth/confirm`) at launch.
+   - **Redirect URLs:** add `http://localhost:3000/auth/confirm` and `http://localhost:3000/auth/callback`, then the production equivalents (`https://<your-domain>/auth/confirm`, `https://<your-domain>/auth/callback`) at launch.
 2. **Authentication → Sign In / Providers → Email:**
    - Keep **Confirm email** on.
    - Set the minimum password length to 8 or less so it doesn't conflict with the app's policy.
@@ -62,7 +63,11 @@ Set these in the Supabase dashboard for the Ranting project. The app doesn't cha
    - **Reset Password:** `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password`
 
    The default templates also work through `/auth/confirm?code=…`, but only in the browser where the request was made.
-4. The built-in email sender is rate-limited and meant for testing. Configure custom SMTP (for example Resend, once approved) before real clubs sign up.
+4. **Google sign-in:**
+   - Create a Google Cloud OAuth client (Web application) with the authorised redirect URI `https://namrqbnneljtidyzpshn.supabase.co/auth/v1/callback`.
+   - Enter its Client ID and secret under **Authentication → Sign In / Providers → Google**.
+   - The secret goes only in the Supabase dashboard, never in this repo or `.env.local`.
+5. The built-in email sender is rate-limited and meant for testing. Configure custom SMTP (for example Resend, once approved) before real clubs sign up.
 
 ## Checks
 

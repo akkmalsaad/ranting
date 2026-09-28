@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { newPasswordSchema, passwordResetRequestSchema, passwordSchema, safeNextPath, signInSchema, signUpSchema } from "../src/lib/validation.ts";
-import { AUTH_MESSAGES, authErrorState } from "../src/lib/auth-errors.ts";
+import { AUTH_MESSAGES, LOGIN_NOTICES, authErrorState, fullNameFromMetadata, loginNotice, oauthFailure } from "../src/lib/auth-errors.ts";
 import { formValues, parseForm } from "../src/lib/forms.ts";
 
 const signUp = { full_name: "Aisyah Rahman", email: "aisyah@example.com", password: "Silat2026", confirm_password: "Silat2026" };
@@ -63,4 +63,22 @@ test("passwords are never echoed back in form state", () => {
   const result = parseForm(signUpSchema, form);
   assert.equal(result.ok, false);
   if (!result.ok) assert.equal(result.state.values?.password, undefined);
+});
+
+test("Google sign-in failures map to fixed login notices", () => {
+  assert.equal(oauthFailure("access_denied"), "oauth_cancelled");
+  for (const error of ["server_error", "invalid_request", null]) assert.equal(oauthFailure(error), "oauth");
+  assert.equal(loginNotice("oauth_cancelled"), "oauth_cancelled");
+  assert.match(LOGIN_NOTICES.oauth_cancelled, /cancelled/);
+  // Arbitrary or inherited values from the URL are never rendered.
+  for (const bad of ["<script>", "toString", "__proto__", ["oauth"], undefined]) assert.equal(loginNotice(bad), null);
+});
+
+test("full name comes from our sign-up metadata or the Google profile", () => {
+  assert.equal(fullNameFromMetadata({ full_name: " Aisyah Rahman " }), "Aisyah Rahman");
+  assert.equal(fullNameFromMetadata({ name: "Bala Kumar", avatar_url: "x" }), "Bala Kumar");
+  assert.equal(fullNameFromMetadata({ full_name: "", name: "Chong Wei" }), "Chong Wei");
+  assert.equal(fullNameFromMetadata({ email: "a@b.co" }), null);
+  assert.equal(fullNameFromMetadata(null), null);
+  assert.equal(fullNameFromMetadata({ name: "x".repeat(200) })?.length, 120);
 });

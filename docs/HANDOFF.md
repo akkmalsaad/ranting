@@ -4,7 +4,24 @@ Updated 2026-09-28, Asia/Kuala_Lumpur (UTC+08:00). Agent: Claude Code.
 
 ## Current task and state
 
-**Latest session (2026-09-28): self-service accounts.** Built and verified locally; committed and pushed in the commit that follows `f87e8dc`. The remote Supabase project was **not** changed: the dashboard settings in README "Supabase Auth settings" still have to be applied by the user.
+**Latest session (2026-09-28): Continue with Google.** Built and verified locally; committed and pushed in the commit that follows `e9221f5`. The remote Supabase project and Google Cloud were **not** changed.
+
+- **Button and action:** `GoogleSignIn` (in `src/components/auth/google-button.tsx`) puts the button and an "or" divider above the email form on `/login` and `/signup`. It's a form posting to the `signInWithGoogle` server action, which calls `signInWithOAuth({ provider: "google", redirectTo: SITE_URL/auth/callback })`. The SSR client uses PKCE, so the verifier is stored in a cookie.
+- **`/auth/callback`:**
+  - Exchanges the code, copies the Google `name` into `user_metadata.full_name` when `full_name` is missing, then redirects to `/workspaces`, which routes to `/workspaces/new` or the club dashboard.
+  - `error=access_denied` → `/login?error=oauth_cancelled`; any other failure → `/login?error=oauth`.
+  - The login page renders only the fixed `LOGIN_NOTICES` codes.
+- **Helpers:** `src/lib/auth-errors.ts` has `LOGIN_NOTICES`, `loginNotice`, `oauthFailure` and `fullNameFromMetadata`, covered by 2 new tests.
+- **Checks:**
+  - Lint, typecheck and build: pass.
+  - Tests: 34/34 pass.
+  - Smoke test: callback cancelled, missing-code and server-error paths all redirect correctly; the button and divider render on both pages; unknown `?error=` values are ignored.
+  - Not tested: a real Google round trip. It needs the Google client and the Supabase provider configured by the user.
+- **Next step:** the user configures Google Cloud and the Supabase Google provider (README "Supabase Auth settings" step 4), adds `/auth/callback` to the redirect URLs, then tests new-user Google → `/workspaces/new` and existing-user Google → dashboard. Apple sign-in is deliberately not added.
+
+### Previous session: self-service accounts
+
+**Self-service accounts (2026-09-28).** Built and verified locally; committed and pushed in the commit that follows `f87e8dc`. The remote Supabase project was **not** changed: the dashboard settings in README "Supabase Auth settings" still have to be applied by the user.
 
 - **Routes:**
   - `/signup` (full name, email, password, confirm) → `/signup/check-email`, which includes a resend-confirmation form.
@@ -111,5 +128,6 @@ Deferred and still open: staff/parent roles and invitations, verified guardian l
 - 2026-09-28 (user): Guardian name and phone are contact-only student fields.
 - 2026-09-28 (user): `archived_at` is separate from active/inactive status. Gender is optional (male/female).
 - 2026-09-28 (user): PGlite dev dependency approved for RLS tests.
+- 2026-09-28 (user): Google OAuth (PKCE, `/auth/callback`) approved; Apple deferred.
 - 2026-09-28 (user): Self-service sign-up with email confirmation and password reset approved; the full name lives in auth user metadata (no profile table yet). The password policy and `SITE_URL` were chosen by the agent and need confirming.
 - All of these are recorded in AGENTS.md §13.

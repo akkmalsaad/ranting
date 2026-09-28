@@ -44,3 +44,30 @@ export function authErrorState(error: AuthErrorLike, flow: AuthFlow): FormState 
   // Sign-in failures without a recognised code are still reported as invalid credentials.
   return { error: flow === "sign-in" && error?.status === 400 ? AUTH_MESSAGES.invalidLogin : AUTH_MESSAGES.generic };
 }
+
+// --- Login page notices (?error=…) -------------------------------------------------------------
+// Only these fixed codes are rendered; anything else in the URL is ignored.
+export const LOGIN_NOTICES = {
+  link: "That link is invalid or has expired.",
+  oauth_cancelled: "Google sign-in was cancelled. You can try again, or sign in with your email and password.",
+  oauth: "We couldn't sign you in with Google. Please try again, or sign in with your email and password.",
+} as const;
+export type LoginNotice = keyof typeof LOGIN_NOTICES;
+
+export function loginNotice(code: unknown): LoginNotice | null {
+  return typeof code === "string" && Object.hasOwn(LOGIN_NOTICES, code) ? (code as LoginNotice) : null;
+}
+
+/** Classifies the `error` query parameter Supabase appends when an OAuth sign-in doesn't complete. */
+export function oauthFailure(error: string | null): LoginNotice {
+  return error === "access_denied" ? "oauth_cancelled" : "oauth";
+}
+
+/** Full name from auth user metadata: our sign-up form sets `full_name`; Google provides `full_name` and/or `name`. */
+export function fullNameFromMetadata(metadata: Record<string, unknown> | null | undefined) {
+  for (const key of ["full_name", "name"]) {
+    const value = metadata?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim().slice(0, 120);
+  }
+  return null;
+}

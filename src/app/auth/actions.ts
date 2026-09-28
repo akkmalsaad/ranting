@@ -61,6 +61,14 @@ export async function updatePassword(_: FormState, form: FormData): Promise<Form
   redirect("/workspaces");
 }
 
+/** Starts Google OAuth (PKCE). The code verifier cookie is set here; /auth/callback completes it. */
+export async function signInWithGoogle() {
+  const db = await createClient();
+  const { data, error } = await db.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${siteUrl()}/auth/callback` } });
+  if (error || !data.url) redirect("/login?error=oauth");
+  redirect(data.url);
+}
+
 export async function signOut() {
   const db = await createClient();
   const { error } = await db.auth.signOut();
