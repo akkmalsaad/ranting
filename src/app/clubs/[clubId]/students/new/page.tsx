@@ -1,4 +1,4 @@
-import { requireClub } from "@/lib/clubs";
+import { clubClient, requireClub } from "@/lib/clubs";
 import { todayInMalaysia } from "@/lib/validation";
 import { PageHeader } from "@/components/page-header";
 import { StudentForm } from "@/components/students/student-form";
@@ -7,8 +7,12 @@ import { createStudent } from "../actions";
 export const metadata = { title: "Add student" };
 
 export default async function NewStudent({ params }: PageProps<"/clubs/[clubId]/students/new">) {
-  const { db, club } = await requireClub((await params).clubId);
-  const { data: branches, error } = await db.from("branches").select("id, name").eq("club_id", club.id).is("archived_at", null).order("name").limit(200);
+  const { clubId } = await params;
+  const { db } = await clubClient(clubId);
+  const [{ club }, { data: branches, error }] = await Promise.all([
+    requireClub(clubId),
+    db.from("branches").select("id, name").eq("club_id", clubId).is("archived_at", null).order("name").limit(200),
+  ]);
   if (error) throw new Error("Unable to load branches.");
   return (
     <>

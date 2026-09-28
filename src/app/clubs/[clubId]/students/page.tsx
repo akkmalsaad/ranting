@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CircleCheck, CircleMinus, Archive, Plus, Search } from "lucide-react";
 import { assets } from "@/lib/assets";
-import { requireClub } from "@/lib/clubs";
+import { clubClient, requireClub } from "@/lib/clubs";
 import { formatDate } from "@/lib/format";
 import { idSchema, pageNumber, searchTerm } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,12 @@ type View = (typeof views)[number];
 export default async function Students({ params, searchParams }: PageProps<"/clubs/[clubId]/students">) {
   const { clubId } = await params;
   const sp = await searchParams;
-  const { db, club } = await requireClub(clubId);
+  const { db } = await clubClient(clubId);
   const view: View = views.find((v) => v === sp.view) ?? "all";
   const q = searchTerm(sp.q);
   const branch = sp.branch === "none" || idSchema.safeParse(sp.branch).success ? (sp.branch as string) : "";
   const page = pageNumber(sp.page);
-  const base = `/clubs/${club.id}/students`;
+  const base = `/clubs/${clubId}/students`;
   const link = (changes: Record<string, string | number | undefined>) => {
     const next = new URLSearchParams();
     for (const [key, value] of Object.entries({ view: view === "all" ? undefined : view, q: q || undefined, branch: branch || undefined, ...changes })) if (value !== undefined && value !== "") next.set(key, String(value));
@@ -35,7 +35,7 @@ export default async function Students({ params, searchParams }: PageProps<"/clu
 
   let query = db.from("students")
     .select("id, full_name, status, phone, guardian_name, guardian_phone, join_date, archived_at, branch:branches!students_club_id_branch_id_fkey(name)", { count: "exact" })
-    .eq("club_id", club.id);
+    .eq("club_id", clubId);
   query = view === "archived" ? query.not("archived_at", "is", null) : query.is("archived_at", null);
   if (view === "active" || view === "inactive") query = query.eq("status", view);
   if (branch === "none") query = query.is("branch_id", null);
@@ -47,9 +47,11 @@ export default async function Students({ params, searchParams }: PageProps<"/clu
     query = query.or(filters.join(","));
   }
   const from = (page - 1) * PAGE_SIZE;
-  const [{ data: students, count, error }, branches] = await Promise.all([
+  // Membership check, the student page and the branch filter options: one parallel round trip.
+  const [, { data: students, count, error }, branches] = await Promise.all([
+    requireClub(clubId),
     query.order("full_name").order("id").range(from, from + PAGE_SIZE - 1),
-    db.from("branches").select("id, name, archived_at").eq("club_id", club.id).order("name").limit(200),
+    db.from("branches").select("id, name, archived_at").eq("club_id", clubId).order("name").limit(200),
   ]);
   if (error || branches.error) throw new Error("Unable to load students.");
   const total = count ?? 0;

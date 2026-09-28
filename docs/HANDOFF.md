@@ -4,7 +4,35 @@ Updated 2026-09-28, Asia/Kuala_Lumpur (UTC+08:00). Agent: Claude Code.
 
 ## Current task and state
 
-**Latest session (2026-09-28): fix for /login "This field is required".**
+**Latest session (2026-09-28): navigation performance.** Committed and pushed in the commit that follows `991a5eb`.
+
+- **Measured:**
+  - The Supabase project is in **ap-southeast-2 (Sydney)**, about 230–390 ms per round trip from this machine (median ~290 ms). AGENTS.md recommended Singapore; flagged, not changed.
+  - The project uses ES256 JWT keys, so `getClaims()` verifies locally (JWKS cached 10 minutes per process).
+  - With `SUPABASE_TRACE=1` on `next start`: the proxy made 0 Supabase calls.
+- **Before, per club-page navigation:** 3 serial round trips (layouts don't re-render on client navigation, so only the page ran). These were `getUser()` (Auth), then `requireClub` (clubs), then the page queries (in parallel). A full load was also 3 serial round trips (getUser → club → clubs list ∥ page queries). There was no `loading.tsx` below the club layout, so dynamic routes weren't prefetched and clicks showed nothing until the server finished.
+- **After:**
+  - `requireUser` uses `getClaims()` (0 round trips).
+  - New `clubClient(clubId)` validates the id and returns the cached client, so pages run `requireClub` **in parallel** with their RLS-scoped queries: 1 round trip per navigation and per full load.
+  - The layout loads the club and the club list in parallel.
+  - The security checks are unchanged: every page and action still awaits `requireClub` (404 for non-members), RLS still scopes every query, and actions still check membership before writing. `updatePassword` and the reset page still use `getUser()`.
+- **Timings (replay of each request pattern against the real project, anon key, 8 runs, median):**
+
+  | Scenario | Before | After |
+  | --- | --- | --- |
+  | Navigate to Students | 1009 ms | 342 ms |
+  | Navigate to Dashboard | 966 ms | 326 ms |
+  | Full load of a club page | 854 ms | 353 ms |
+
+  These are replays, not real signed-in timings; there's no test session. The user can confirm with `SUPABASE_TRACE=1 npm run start`.
+- **Loading states:** skeleton `loading.tsx` files for the club dashboard, branches, students, and the add/edit branch and student pages (`src/components/skeletons.tsx`; `role="status"`, respects reduced motion). Nav already used `next/link` with default prefetching, which now prefetches these shells.
+- **Trace:** `src/lib/supabase/trace.ts` adds opt-in request timing (path, status and ms only), wired into the server client and the proxy.
+- **Checks:** lint, typecheck and build pass; 36/36 tests pass.
+- **Not tested:** real signed-in navigation in a browser (no browser tool or test session).
+
+### Previous session: /login "This field is required" fix
+
+**Fix for /login "This field is required" (2026-09-28).**
 
 - **Root cause (regression from `e9221f5`):**
   - `parseForm` validated `formValues(form)`, which drops every `*password*` field so passwords aren't echoed back.

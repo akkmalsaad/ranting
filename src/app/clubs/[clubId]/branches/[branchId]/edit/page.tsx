@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireClub } from "@/lib/clubs";
+import { clubClient, requireClub } from "@/lib/clubs";
 import { idSchema } from "@/lib/validation";
 import { PageHeader } from "@/components/page-header";
 import { BranchForm } from "@/components/branches/branch-form";
@@ -10,11 +10,12 @@ export const metadata = { title: "Edit branch" };
 
 export default async function EditBranch({ params }: PageProps<"/clubs/[clubId]/branches/[branchId]/edit">) {
   const { clubId, branchId } = await params;
-  const { db, club } = await requireClub(clubId);
+  const { db } = await clubClient(clubId);
   if (!idSchema.safeParse(branchId).success) notFound();
-  const [{ data: branch, error }, students] = await Promise.all([
-    db.from("branches").select("id, name, address, archived_at").eq("id", branchId).eq("club_id", club.id).maybeSingle(),
-    db.from("students").select("id", { count: "exact", head: true }).eq("club_id", club.id).eq("branch_id", branchId).is("archived_at", null),
+  const [{ club }, { data: branch, error }, students] = await Promise.all([
+    requireClub(clubId),
+    db.from("branches").select("id, name, address, archived_at").eq("id", branchId).eq("club_id", clubId).maybeSingle(),
+    db.from("students").select("id", { count: "exact", head: true }).eq("club_id", clubId).eq("branch_id", branchId).is("archived_at", null),
   ]);
   if (error || students.error) throw new Error("Unable to load this branch.");
   if (!branch) notFound();

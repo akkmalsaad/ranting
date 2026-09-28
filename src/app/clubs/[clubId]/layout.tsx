@@ -10,8 +10,7 @@ import { ClubSwitcher } from "@/components/clubs/club-switcher";
 
 export default async function ClubLayout({ children, params }: LayoutProps<"/clubs/[clubId]">) {
   const { clubId } = await params;
-  const { club } = await requireClub(clubId);
-  const { clubs } = await listMyClubs();
+  const [{ club }, { clubs }] = await Promise.all([requireClub(clubId), listMyClubs()]);
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
       <aside className="border-b border-border bg-white px-4 pb-3 pt-4 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:p-6">

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireClub } from "@/lib/clubs";
+import { clubClient, requireClub } from "@/lib/clubs";
 import { idSchema, todayInMalaysia } from "@/lib/validation";
 import { PageHeader } from "@/components/page-header";
 import { StudentForm } from "@/components/students/student-form";
@@ -10,11 +10,12 @@ export const metadata = { title: "Edit student" };
 
 export default async function EditStudent({ params }: PageProps<"/clubs/[clubId]/students/[studentId]/edit">) {
   const { clubId, studentId } = await params;
-  const { db, club } = await requireClub(clubId);
+  const { db } = await clubClient(clubId);
   if (!idSchema.safeParse(studentId).success) notFound();
-  const [{ data: student, error }, branches] = await Promise.all([
-    db.from("students").select("id, full_name, date_of_birth, gender, phone, guardian_name, guardian_phone, branch_id, status, join_date, notes, archived_at").eq("id", studentId).eq("club_id", club.id).maybeSingle(),
-    db.from("branches").select("id, name, archived_at").eq("club_id", club.id).order("name").limit(200),
+  const [{ club }, { data: student, error }, branches] = await Promise.all([
+    requireClub(clubId),
+    db.from("students").select("id, full_name, date_of_birth, gender, phone, guardian_name, guardian_phone, branch_id, status, join_date, notes, archived_at").eq("id", studentId).eq("club_id", clubId).maybeSingle(),
+    db.from("branches").select("id, name, archived_at").eq("club_id", clubId).order("name").limit(200),
   ]);
   if (error || branches.error) throw new Error("Unable to load this student.");
   if (!student) notFound();

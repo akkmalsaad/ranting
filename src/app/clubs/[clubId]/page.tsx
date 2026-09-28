@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Plus, Users } from "lucide-react";
 import { assets } from "@/lib/assets";
-import { requireClub } from "@/lib/clubs";
+import { clubClient, requireClub } from "@/lib/clubs";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 
@@ -10,10 +10,12 @@ export const metadata = { title: "Dashboard" };
 
 export default async function Dashboard({ params }: PageProps<"/clubs/[clubId]">) {
   const { clubId } = await params;
-  const { db, club } = await requireClub(clubId);
-  const [branches, students] = await Promise.all([
-    db.from("branches").select("id", { count: "exact", head: true }).eq("club_id", club.id).is("archived_at", null),
-    db.from("students").select("id", { count: "exact", head: true }).eq("club_id", club.id).eq("status", "active").is("archived_at", null),
+  const { db } = await clubClient(clubId);
+  // Membership check and RLS-scoped counts run in one parallel round trip.
+  const [{ club }, branches, students] = await Promise.all([
+    requireClub(clubId),
+    db.from("branches").select("id", { count: "exact", head: true }).eq("club_id", clubId).is("archived_at", null),
+    db.from("students").select("id", { count: "exact", head: true }).eq("club_id", clubId).eq("status", "active").is("archived_at", null),
   ]);
   if (branches.error || students.error) throw new Error("Unable to load club summary.");
   const base = `/clubs/${club.id}`;

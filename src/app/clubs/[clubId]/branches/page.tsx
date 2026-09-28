@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Pencil, Plus } from "lucide-react";
 import { assets } from "@/lib/assets";
-import { requireClub } from "@/lib/clubs";
+import { clubClient, requireClub } from "@/lib/clubs";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { ViewTabs } from "@/components/view-tabs";
@@ -15,11 +15,12 @@ export default async function Branches({ params, searchParams }: PageProps<"/clu
   const { clubId } = await params;
   const { view, notice } = await searchParams;
   const archived = view === "archived";
-  const { db, club } = await requireClub(clubId);
-  const base = `/clubs/${club.id}/branches`;
-  let query = db.from("branches").select("id, name, address, archived_at").eq("club_id", club.id).order("name").limit(200);
+  const { db } = await clubClient(clubId);
+  let query = db.from("branches").select("id, name, address, archived_at").eq("club_id", clubId).order("name").limit(200);
   query = archived ? query.not("archived_at", "is", null) : query.is("archived_at", null);
-  const { data: branches, error } = await query;
+  // Membership check and the RLS-scoped list run in parallel.
+  const [{ club }, { data: branches, error }] = await Promise.all([requireClub(clubId), query]);
+  const base = `/clubs/${club.id}/branches`;
   if (error) throw new Error("Unable to load branches.");
   return (
     <>
