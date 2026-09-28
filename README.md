@@ -64,7 +64,7 @@ Set these in the Supabase dashboard for the Ranting project. The app doesn't cha
 
    The default templates also work through `/auth/confirm?code=…`, but only in the browser where the request was made.
 4. **Google sign-in:**
-   - Create a Google Cloud OAuth client (Web application) with the authorised redirect URI `https://namrqbnneljtidyzpshn.supabase.co/auth/v1/callback`.
+   - Create a Google Cloud OAuth client (Web application) with the authorised redirect URI `https://pdsisgkcigtjipitwqxc.supabase.co/auth/v1/callback`.
    - Enter its Client ID and secret under **Authentication → Sign In / Providers → Google**.
    - The secret goes only in the Supabase dashboard, never in this repo or `.env.local`.
 5. The built-in email sender is rate-limited and meant for testing. Configure custom SMTP (for example Resend, once approved) before real clubs sign up.
@@ -75,7 +75,7 @@ Set these in the Supabase dashboard for the Ranting project. The app doesn't cha
 - **Parallel queries:** club pages run the membership check (`requireClub`) in parallel with their RLS-scoped queries, one round trip per navigation, and results are shared through React `cache()`.
 - **Loading states:** `loading.tsx` skeletons make clicks respond instantly, and let `<Link>` prefetch dynamic club routes.
 - **Tracing:** run `SUPABASE_TRACE=1 npm run start` to log each Supabase request (endpoint path, status, duration; never query strings or bodies).
-- **Latency:** the project is in `ap-southeast-2` (Sydney), about 230–390 ms per round trip measured from Malaysia. A Singapore project would be closer, but moving regions means creating a new project and migrating, which is a separate decision.
+- **Latency:** the Ranting project (`pdsisgkcigtjipitwqxc`) is in `ap-southeast-1` (Singapore): about 70 ms per round trip measured from Malaysia (median), versus about 290 ms for the earlier Sydney project.
 
 ## Checks
 

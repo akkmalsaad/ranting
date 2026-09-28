@@ -4,10 +4,26 @@ Updated 2026-09-28, Asia/Kuala_Lumpur (UTC+08:00). Agent: Claude Code.
 
 ## Current task and state
 
-**Latest session (2026-09-28): navigation performance.** Committed and pushed in the commit that follows `991a5eb`.
+**Latest session (2026-09-28): moved to the Singapore Supabase project.** Committed and pushed in the commit that follows `3050559`.
+
+- **New project:** the user created Ranting project **`pdsisgkcigtjipitwqxc` (ap-southeast-1, Singapore)**, updated `.env.local` and linked the CLI. Verified: the linked ref and the `.env.local` URL both point to the new ref.
+- **Migration:** `supabase db push` (dry run first) applied `20260928120000_club_tenancy.sql`; `supabase migration list` shows local = remote.
+- **Types:** `supabase gen types typescript --linked --schema public` output is identical to the committed `database.types.ts`, so there's no diff.
+- **The earlier project was not touched** and is no longer referenced in the repo: no commands were run against it, and the only CLI project listing now shows just the new project.
+- **Docs:** README (Google redirect URI, latency note), HANDOFF and AGENTS.md §13 now reference the new ref.
+- **Latency:** REST round trip median ~73 ms (Sydney was ~290 ms). A replay of one club navigation takes ~76 ms, and the project still uses ES256 JWT keys, so `getClaims()` remains local.
+- **User must redo on the new project:**
+  - Everything in README "Supabase Auth settings": Site URL, redirect URLs (`/auth/confirm`, `/auth/callback`), both email templates, minimum password length and the Google provider (Client ID and secret).
+  - In Google Cloud, change the OAuth client's redirect URI to `https://pdsisgkcigtjipitwqxc.supabase.co/auth/v1/callback`.
+  - Recreate test users; users and data weren't migrated.
+- **Checks:** lint, typecheck and build pass; 36/36 tests pass.
+
+### Previous session: navigation performance
+
+**Navigation performance (2026-09-28).** Committed and pushed in the commit that follows `991a5eb`.
 
 - **Measured:**
-  - The Supabase project is in **ap-southeast-2 (Sydney)**, about 230–390 ms per round trip from this machine (median ~290 ms). AGENTS.md recommended Singapore; flagged, not changed.
+  - At the time, the Supabase project was in **ap-southeast-2 (Sydney)**, about 230–390 ms per round trip (median ~290 ms). It has since been replaced by the Singapore project (see the latest session).
   - The project uses ES256 JWT keys, so `getClaims()` verifies locally (JWKS cached 10 minutes per process).
   - With `SUPABASE_TRACE=1` on `next start`: the proxy made 0 Supabase calls.
 - **Before, per club-page navigation:** 3 serial round trips (layouts don't re-render on client navigation, so only the page ran). These were `getUser()` (Auth), then `requireClub` (clubs), then the page queries (in parallel). A full load was also 3 serial round trips (getUser → club → clubs list ∥ page queries). There was no `loading.tsx` below the club layout, so dynamic routes weren't prefetched and clicks showed nothing until the server finished.
@@ -104,7 +120,7 @@ Updated 2026-09-28, Asia/Kuala_Lumpur (UTC+08:00). Agent: Claude Code.
 
 ### What exists
 
-- **Migration `supabase/migrations/20260928120000_club_tenancy.sql`** (applied to Ranting project `namrqbnneljtidyzpshn`):
+- **Migration `supabase/migrations/20260928120000_club_tenancy.sql`** (applied to Ranting project `pdsisgkcigtjipitwqxc`, Singapore):
   - Tables: `clubs`, `club_members`, `branches`, `students`, plus the enum `club_role` (`owner` only).
   - `private.is_club_member(club_id, roles[])`: SECURITY DEFINER, stable, `search_path=''`. Every policy uses it.
   - `public.create_club()`: SECURITY DEFINER RPC that inserts the club and the owner membership in one transaction. Clubs have no insert policy, and `club_members` has no write policies.

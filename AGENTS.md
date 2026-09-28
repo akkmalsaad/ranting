@@ -172,6 +172,7 @@ The next agent must inspect git and code again; a handoff is context, not proof.
 - 2026-09-28, access model: any authenticated user may create a club and becomes its `owner`. Access is only through `club_members` (`club_role` enum) checked by `private.is_club_member(club_id, roles[])` in RLS; there's no `owner_id` on `clubs`. Clubs are created only through the atomic `public.create_club()` RPC. Nobody can write `club_members` directly. Add future roles with `alter type ... add value` plus new policy migrations.
 - 2026-09-28, guardians: `students.guardian_name` / `guardian_phone` are emergency-contact text only and must never grant access. Verified parent links will be separate tables.
 - 2026-09-28, archiving: `archived_at` is separate from student status (`active`/`inactive`). The UI archives branches and students and never hard-deletes them.
+- 2026-09-28, Supabase project: Ranting uses project `pdsisgkcigtjipitwqxc` in `ap-southeast-1` (Singapore), linked through the Supabase CLI. Schema changes are applied with `supabase db push` only after explicit authorization; types are regenerated with `supabase gen types typescript --linked --schema public`.
 - 2026-09-28, testing: RLS/tenant isolation is tested with `@electric-sql/pglite` (dev only) running the real migrations over `tests/support/supabase-shim.sql`. That doesn't replace testing against a designated Supabase test project.
 
 Official loading references (verified 2026-09-28):
