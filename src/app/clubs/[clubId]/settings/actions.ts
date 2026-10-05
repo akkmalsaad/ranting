@@ -55,6 +55,19 @@ export async function completeClubProfile(clubId: string, _: FormState, form: Fo
   redirect(`/clubs/${club.id}`);
 }
 
+/**
+ * Dashboard "Complete profile" (the onboarding step-2 form, prefilled): same validation and save as
+ * completeClubProfile, but it stays on the page. The dashboard and layout refresh via revalidatePath.
+ */
+export async function saveClubProfile(clubId: string, _: FormState, form: FormData): Promise<FormState> {
+  const { db, club } = await requireClub(clubId);
+  const parsed = parseForm(clubProfileSchema, form);
+  if (!parsed.ok) return parsed.state;
+  const failed = await saveClub(db, club, parsed.data, form, parsed.values);
+  if (failed) return failed;
+  return { saved: { count: 1, params: { notice: "profile" } } };
+}
+
 /** Club Settings: required details plus the optional profile. */
 export async function updateClubSettings(clubId: string, _: FormState, form: FormData): Promise<FormState> {
   const { db, club } = await requireClub(clubId);

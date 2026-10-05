@@ -5,14 +5,23 @@ import { PGlite, type Transaction } from "@electric-sql/pglite";
 const root = join(import.meta.dirname, "..", "..");
 const migrationsDir = join(root, "supabase", "migrations");
 
-/** Boots an in-memory Postgres with the Supabase shim and every migration applied in order. */
-export async function createTestDb() {
+/**
+ * Boots an in-memory Postgres with the Supabase shim and every migration applied in order. With
+ * `before`, stops before that migration file so a test can seed rows and then run it with
+ * `applyMigration` (to exercise backfills).
+ */
+export async function createTestDb({ before }: { before?: string } = {}) {
   const db = new PGlite();
   await db.exec(readFileSync(join(import.meta.dirname, "supabase-shim.sql"), "utf8"));
   for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort()) {
-    await db.exec(readFileSync(join(migrationsDir, file), "utf8"));
+    if (before && file >= before) break;
+    await applyMigration(db, file);
   }
   return db;
+}
+
+export async function applyMigration(db: PGlite, file: string) {
+  await db.exec(readFileSync(join(migrationsDir, file), "utf8"));
 }
 
 export async function createUser(db: PGlite, id: string) {

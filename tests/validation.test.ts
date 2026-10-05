@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clubSchema, branchSchema, studentSchema, pageNumber, searchTerm, todayInMalaysia } from "../src/lib/validation.ts";
+import { clubSchema, branchSchema, formatBranchAddress, studentSchema, pageNumber, searchTerm, todayInMalaysia } from "../src/lib/validation.ts";
 import { parseForm } from "../src/lib/forms.ts";
 
 const student = { full_name: "Aisyah Rahman", status: "active", join_date: "2026-01-15" };
@@ -11,9 +11,17 @@ test("club names are normalized and bounded", () => {
   assert.equal(clubSchema.safeParse({ name: "a".repeat(121), discipline: "Silat" }).success, false);
 });
 
-test("branches accept an optional bounded address", () => {
-  assert.equal(branchSchema.parse({ name: "Central" }).address, "");
-  assert.equal(branchSchema.safeParse({ name: "Central", address: "x".repeat(501) }).success, false);
+test("branch details are optional and validated when given", () => {
+  const empty = branchSchema.parse({ name: "Central" });
+  assert.equal(empty.address_line1, null);
+  assert.equal(empty.coach_email, null);
+  const full = branchSchema.parse({ name: "Bukit Antarabangsa", address_line1: "12 Jalan Bukit", postcode: "68000", city: "Ampang", state: "selangor", coach_name: "Cikgu Amir", coach_phone: "012-345 6789", coach_role: "Head Coach", coach_email: " Amir@Club.MY " });
+  assert.equal(full.coach_phone, "0123456789");
+  assert.equal(full.coach_email, "amir@club.my");
+  for (const bad of [{ postcode: "1" }, { state: "atlantis" }, { coach_phone: "12ab" }, { coach_email: "nope" }, { address_line1: "x".repeat(201) }]) {
+    assert.equal(branchSchema.safeParse({ name: "Central", ...bad }).success, false, JSON.stringify(bad));
+  }
+  assert.equal(formatBranchAddress(full), "12 Jalan Bukit, 68000 Ampang, Selangor");
 });
 
 test("students: blank optional fields become null and phones are normalized", () => {

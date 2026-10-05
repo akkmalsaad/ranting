@@ -18,7 +18,7 @@ function Frame({ id, label, hint, error, children }: { id: string; label: string
   return (
     <div>
       <label htmlFor={id}>{label}</label>
-      <div className="mt-2">{children}</div>
+      <div className="mt-1.5">{children}</div>
       {hint && <p id={`${id}-hint`} className="mt-1.5 text-xs text-slate-500">{hint}</p>}
       {error && <p id={`${id}-error`} className="mt-1.5 text-sm font-medium text-red-700">{error}</p>}
     </div>
@@ -37,5 +37,5 @@ export function TextAreaField({ name, label, hint, defaultValue, ...props }: Com
 
 export function SelectField({ name, label, hint, defaultValue, options, ...props }: Common & { options: { value: string; label: string }[] } & Omit<React.ComponentProps<"select">, "name" | "defaultValue">) {
   const f = useField({ name, label, defaultValue });
-  return <Frame id={f.id} label={label} hint={hint} error={f.error}><select key={f.value} id={f.id} name={name} defaultValue={f.value} aria-invalid={!!f.error} aria-describedby={f.describedBy} {...props}>{options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></Frame>;
+  return <Frame id={f.id} label={label} hint={hint} error={f.error}><select key={f.value} id={f.id} name={name} className="field-select" defaultValue={f.value} aria-invalid={!!f.error} aria-describedby={f.describedBy} {...props}>{options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></Frame>;
 }

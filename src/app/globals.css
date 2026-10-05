@@ -1,14 +1,75 @@
 @import "tailwindcss";
-:root { --background: #f5f7f8; --foreground: #071e30; --primary: #147968; --muted: #edf2f3; --border: #dde5e8; }
-@theme inline { --color-background: var(--background); --color-foreground: var(--foreground); --color-primary: var(--primary); --color-muted: var(--muted); --color-border: var(--border); --font-sans: Arial, Helvetica, sans-serif; }
+/* `color-scheme: light` keeps native pickers and option lists light even when the OS is in dark mode. */
+:root { --background: #f5f7f8; --foreground: #071e30; --primary: #147968; --muted: #edf2f3; --border: #dde5e8; --navy: #071e30; --navy-hover: #0d2c45; color-scheme: light; accent-color: var(--primary); }
+@theme inline { --color-background: var(--background); --color-foreground: var(--foreground); --color-primary: var(--primary); --color-muted: var(--muted); --color-border: var(--border); --color-navy: var(--navy); --color-navy-hover: var(--navy-hover); --font-sans: Arial, Helvetica, sans-serif; }
 body { background: var(--background); color: var(--foreground); font-family: Arial, Helvetica, sans-serif; }
 button, a, select { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
 label { display: block; font-size: .875rem; font-weight: 600; }
 label > input, label > select, label > textarea { margin-top: .5rem; }
-select, textarea { width: 100%; border: 1px solid var(--border); border-radius: .75rem; background: white; padding: .75rem; font-size: 1rem; }
-a:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
-.panel { border: 1px solid var(--border); border-radius: 1.25rem; background: white; padding: clamp(1.25rem,3vw,2rem); box-shadow: 0 4px 24px #071e3004; }
-h1 { font-size: clamp(1.8rem,4vw,2.5rem); font-weight: 700; letter-spacing: -.04em; }
-h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -.02em; }
+
+/* Form controls: one height, border, radius and focus ring (matches Input and the custom selects). */
+select, textarea { width: 100%; border: 1px solid var(--border); border-radius: .75rem; background-color: white; padding: .75rem; font-size: 1rem; color: var(--foreground); transition: border-color 150ms, box-shadow 150ms; }
+select { min-height: 2.75rem; padding-block: .5rem; }
+textarea { line-height: 1.5; }
+textarea::placeholder { color: #94a3b8; }
+select:hover, textarea:hover { border-color: #c9d5da; }
+@media (min-width: 640px) { select, textarea { font-size: .9375rem; } }
+select:focus-visible, textarea:focus-visible { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgb(20 121 104 / .15); }
+select:disabled, textarea:disabled { background-color: var(--muted); opacity: .7; cursor: not-allowed; }
+/* Opt-in custom chevron for form selects (SelectField and filter selects). */
+.field-select { appearance: none; padding-right: 2.5rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .875rem center; }
+a:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
 [aria-invalid="true"] { border-color: #b91c1c; }
+[aria-invalid="true"]:focus-visible { border-color: #b91c1c; box-shadow: 0 0 0 4px rgb(185 28 28 / .12); }
+/* Navy shell surfaces (sidebar, mobile top bar, drawer): a white focus ring reads better than emerald. */
+.shell-dark a:focus-visible, .shell-dark button:focus-visible, .shell-dark select:focus-visible { outline: 2px solid white; outline-offset: 2px; }
+
+/* Grouped form sections: a hairline above each section after the first. It's a box-shadow, not a
+   border, so a <legend> isn't notched into it. */
+.form-section ~ .form-section { padding-top: 1.5rem; box-shadow: 0 -1px 0 var(--border); }
+.form-legend { margin-bottom: 1rem; font-size: .9375rem; font-weight: 700; letter-spacing: -.01em; }
+
+/* Surfaces and type: same card as the Dashboard sections (SectionCard). */
+.panel { border: 1px solid var(--border); border-radius: 1rem; background: white; padding: clamp(1.25rem,3vw,1.5rem); }
+h1 { font-size: clamp(1.8rem,4vw,2.5rem); font-weight: 700; letter-spacing: -.04em; }
+h2 { font-size: 1.0625rem; font-weight: 700; letter-spacing: -.015em; }
+/* The page behind an open modal <dialog> stays still (the dialog scrolls itself). */
+html:has(dialog:modal) { overflow: hidden; }
+
+/* Light data tables (Branches, Students, Fees, Finance, Classes). Rows get `hover:bg-…` themselves. */
+.data-table { width: 100%; text-align: left; font-size: .875rem; }
+.data-table > thead { border-bottom: 1px solid var(--border); }
+.data-table > thead th { padding-block: .75rem; font-size: .75rem; font-weight: 600; color: #64748b; white-space: nowrap; }
+.data-table > tbody > tr + tr { border-top: 1px solid var(--border); }
+.data-table > tbody > tr { transition: background-color 150ms; }
+
+/* Shell motion. Transform and opacity only; nothing here delays navigation. */
+/* Content of a newly opened club section eases in (template.tsx remounts per top-level section). */
+@keyframes page-enter { from { opacity: 0; transform: translateX(10px); } }
+.page-enter { animation: page-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+/* Mobile navigation drawer (native <dialog>). */
+@keyframes drawer-in { from { transform: translateX(-100%); } }
+@keyframes drawer-out { to { transform: translateX(-100%); } }
+@keyframes backdrop-in { from { opacity: 0; } }
+@keyframes backdrop-out { to { opacity: 0; } }
+.nav-drawer[open] { animation: drawer-in 280ms cubic-bezier(0.32, 0.72, 0, 1); }
+.nav-drawer[open]::backdrop { animation: backdrop-in 280ms ease-out; }
+.nav-drawer[data-closing] { animation: drawer-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+.nav-drawer[data-closing]::backdrop { animation: backdrop-out 200ms ease-in forwards; }
+/* Modals: a bottom sheet rising on phones, a short lift-in from sm up. */
+@keyframes sheet-in { from { transform: translateY(100%); } }
+@keyframes modal-in { from { opacity: 0; transform: translateY(8px) scale(.985); } }
+.modal-dialog[open] { animation: sheet-in 280ms cubic-bezier(0.32, 0.72, 0, 1); }
+.modal-dialog[open]::backdrop { animation: backdrop-in 220ms ease-out; }
+@keyframes side-in { from { transform: translateX(100%); } }
+@media (min-width: 640px) {
+  .modal-dialog[open] { animation: modal-in 200ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .modal-dialog[data-placement="side"][open] { animation: side-in 280ms cubic-bezier(0.32, 0.72, 0, 1); }
+}
+/* Dropdown lists (custom selects, menus): a quick fade and drop when they appear. */
+@keyframes popover-in { from { opacity: 0; transform: translateY(-4px); } }
+.popover-in { animation: popover-in 150ms cubic-bezier(0.22, 1, 0.36, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .page-enter, .nav-drawer, .nav-drawer::backdrop, .modal-dialog, .modal-dialog::backdrop, .popover-in { animation: none !important; }
+}

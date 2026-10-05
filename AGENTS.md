@@ -175,6 +175,27 @@ The next agent must inspect git and code again; a handoff is context, not proof.
 - 2026-09-28, Supabase project: Ranting uses project `pdsisgkcigtjipitwqxc` in `ap-southeast-1` (Singapore), linked through the Supabase CLI. Schema changes are applied with `supabase db push` only after explicit authorization; types are regenerated with `supabase gen types typescript --linked --schema public`.
 - 2026-09-28, club files: logos live in the private `club-logos` bucket under `<club_id>/`. Storage RLS gives members read access and owners write access (via `private.club_id_from_object_name` + `private.is_club_member`); logos are PNG/JPEG/WebP only (no SVG), 2 MB max, and are served through a membership-checked route that issues 60-second signed URLs. Use this pattern for future club-scoped files.
 - 2026-09-28, testing: RLS/tenant isolation is tested with `@electric-sql/pglite` (dev only) running the real migrations over `tests/support/supabase-shim.sql`. That doesn't replace testing against a designated Supabase test project.
+- 2026-10-03, classes: classes are stored as individual `class_sessions` (Malaysia local date + times). Weekly recurrence (`class_series`) generates all sessions up front (at most one year), so each occurrence has a stable id; exceptions are per-session edits and cancellations. Instructors are a free-text name for now (no instructor accounts or roles). There are no class notifications yet.
+- 2026-10-03, class fees (direction only, not implemented): a monthly fee per enrolment, stored in sen, with fees owed kept separate from payments received. Enrolment, proration, family discounts and arrears rules are still open.
+- 2026-10-05, student fees (supersedes the per-enrolment direction for now): fees are charged per student.
+  - Each fee is a `student_fees` row with a type, a billing month, a due date, integer-sen amount, and the branch captured at creation (NULL = club-level; it never moves).
+  - Payments are `fee_allocations` of Finance receipts (`payments_received`). Recording a payment creates exactly one receipt plus its allocation, atomically. An existing receipt can be linked explicitly, without creating new income.
+  - Paid is the sum of unreversed allocations. Overpayment and credit are rejected. Fees are voided and allocations are reversed, both audited, and nothing is deleted.
+  - There's one standard monthly fee per student and month, enforced in the database. Monthly generation is a manual preview-and-confirm step only.
+  - Out of scope: background billing, proration, discounts, refunds and gateways. Guardians don't share financial accounts.
+
+- 2026-10-04, settings (migration `20261006100000_club_settings_and_categories.sql`, applied 2026-10-04 to `pdsisgkcigtjipitwqxc`):
+  - Club-level preferences are columns on `clubs`, updated by owners through column grants. They're defaults only (fee amount and due day prefill Generate monthly fees) or option lists (accepted payment methods), and never rewrite existing records.
+  - Finance categories are per-club rows in `transaction_categories`. Built-in keys can be renamed or archived; custom keys use `custom_<12>`. Records store the key, and categories are archived, never deleted.
+  - Registration approval and multi-child registration stay fixed (always on) until a separate change.
+
+- 2026-10-05, branch colour and short code (migration `20261007100000_branch_color_short_code.sql`, applied 2026-10-05 to `pdsisgkcigtjipitwqxc`):
+  - `branches.color` is a key from the fixed palette in `src/lib/branch-colors.ts` (teal, violet, amber, sky, rose, emerald, indigo, orange), never hex. `branches.short_code` is 2–4 uppercase letters or digits, unique per club (archived branches included). Both are optional.
+  - A branch with no saved colour falls back to palette order by branch id. The backfill used the same rule, so existing colours didn't change.
+- 2026-10-05, development login (updated the same day; this supersedes using the linked project): logged-in checks and `npm run seed:dev` (`scripts/seed-dev.ts`) run only against a local Supabase stack, never the live project `pdsisgkcigtjipitwqxc`. A local stack (Docker + `supabase start`) isn't set up yet.
+  - The script creates a confirmed test owner through the Admin API, plus "Dev ·" sample clubs created as that user through RLS.
+  - Credentials and `SUPABASE_SECRET_KEY` live only in `.env.local`; `.env.example` has placeholders.
+  - The script refuses to run unless `DEV_SEED_PROJECT_REF` matches the URL. Pointing it at a local stack needs `.env.local` and `DEV_SEED_PROJECT_REF` set for that stack.
 
 Official loading references (verified 2026-09-28):
 - Codex: https://developers.openai.com/codex/guides/agents-md/

@@ -2,7 +2,17 @@ import type { z } from "zod";
 
 // Shared by Server Actions (authoritative validation) and client forms (early feedback).
 export type FieldErrors = Partial<Record<string, string[]>>;
-export type FormState = { error?: string; success?: string; fieldErrors?: FieldErrors; values?: Record<string, string> };
+export type FormState = {
+  error?: string;
+  success?: string;
+  fieldErrors?: FieldErrors;
+  values?: Record<string, string>;
+  /**
+   * Set by actions that save without redirecting (e.g. modal forms): how many records were created,
+   * and optional query params for the current page afterwards ("" removes a param).
+   */
+  saved?: { count: number; params?: Record<string, string> };
+};
 
 const isPassword = (key: string) => /password/i.test(key);
 
