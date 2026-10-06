@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Pencil, Plus } from "lucide-react";
+import { MessageCircle, Pencil, Plus } from "lucide-react";
 import { useFormState, type FormState } from "@/components/action-form";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -26,7 +26,7 @@ export function FormDialog({ label, title, description, noticeParams = defaultNo
   description: React.ReactNode;
   noticeParams?: NoticeParams;
   /** Trigger button look; defaults to the primary "+ Add …" button. */
-  trigger?: { icon?: "plus" | "pencil" | "none"; variant?: "default" | "outline" | "ghost"; size?: "default" | "sm"; className?: string; ariaLabel?: string };
+  trigger?: { icon?: "plus" | "pencil" | "message" | "none"; variant?: "default" | "outline" | "ghost"; size?: "default" | "sm"; className?: string; ariaLabel?: string };
   /** Modal width override (default: sm:max-w-3xl). */
   modalClassName?: string;
   /** Controlled mode (e.g. opened from a menu): the caller owns `open` and restores focus on close. */
@@ -71,7 +71,7 @@ export function FormDialog({ label, title, description, noticeParams = defaultNo
   return (
     <>
       {!hideTrigger && <Button ref={triggerRef} type="button" variant={trigger?.variant ?? "default"} size={trigger?.size} className={trigger?.className} aria-label={trigger?.ariaLabel} onClick={() => setOpen(true)} aria-haspopup="dialog">
-        {trigger?.icon === "pencil" ? <Pencil size={16} aria-hidden /> : trigger?.icon === "none" ? null : <Plus size={16} aria-hidden />} {label}
+        {trigger?.icon === "pencil" ? <Pencil size={16} aria-hidden /> : trigger?.icon === "message" ? <MessageCircle size={16} aria-hidden /> : trigger?.icon === "none" ? null : <Plus size={16} aria-hidden />} {label}
       </Button>}
       {open && (
         <Modal labelledBy={titleId} onDismiss={close} className={modalClassName} bodyScroll={scrollBody}>

@@ -171,3 +171,5 @@ export const feeBatchSchema = z.object({
 });
 
 export const previewFeesSchema = z.object({ month: monthSchema, branch_id: z.union([z.literal(""), z.uuid()]) });
+/** WhatsApp fee reminder: one current branch (never "all branches") and one billing month. */
+export const feeReminderSchema = z.object({ branch_id: z.uuid(), month: monthSchema });

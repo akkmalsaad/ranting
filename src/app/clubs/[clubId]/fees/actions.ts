@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireClub } from "@/lib/clubs";
 import { parseForm, type FormState } from "@/lib/forms";
 import { idSchema } from "@/lib/validation";
-import { feeBatchSchema, feeEditLockedSchema, feeEditSchema, feeLinkSchema, feePaymentSchema, generateFeesSchema, previewFeesSchema, reasonSchema, safeFeeQuery } from "@/lib/fees/values";
+import { feeBatchSchema, feeEditLockedSchema, feeEditSchema, feeFilters, feeLinkSchema, feePaymentSchema, feeReminderSchema, generateFeesSchema, previewFeesSchema, reasonSchema, safeFeeQuery } from "@/lib/fees/values";
+import { feeSummary, outstandingStudentCount } from "@/lib/fees/queries";
 
 // Fee actions. Each re-checks membership (requireClub) and writes only through the owner-checked
 // SECURITY DEFINER functions, whose triggers enforce balances, voids and same-club relationships.
@@ -92,6 +93,35 @@ export async function previewMonthlyFees(clubId: string, input: { month: string;
   if (eligible.length > 500) return { ok: false, error: "More than 500 students match. Choose a branch to generate fees in smaller groups." };
   const already = new Set(charged.data.map((f) => f.student_id));
   return { ok: true, students: eligible.map((s) => ({ id: s.id, name: s.full_name, branch_id: s.branch_id, charged: already.has(s.id) })) };
+}
+
+export type ReminderSummary =
+  | { ok: true; fees: number; students: number; outstandingSen: string }
+  | { ok: false; error: string };
+const REMINDER_ERROR = "Unable to load outstanding fees. Please try again.";
+
+/**
+ * WhatsApp reminder: aggregated outstanding fees for one current branch and billing month, through
+ * the Fees page's own path: the same filter parser (`feeFilters`, so the month is the page's
+ * "YYYY-MM" → `p_month` YYYY-MM-01), the same `feeSummary` as the summary cards, and
+ * `outstandingStudentCount` with the same scope. Returns counts and a total only (never names or
+ * per-student amounts). Failures are logged server-side (code and message) and shown as a friendly
+ * message; zero results are not errors.
+ */
+export async function feeReminderSummary(clubId: string, input: unknown): Promise<ReminderSummary> {
+  const { db, club } = await requireClub(clubId);
+  const parsed = feeReminderSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Choose a branch and billing period." };
+  const filters = feeFilters({ month: parsed.data.month, branch: parsed.data.branch_id });
+  if (!filters) return { ok: false, error: "Choose a branch and billing period." };
+
+  const branch = await db.from("branches").select("id").eq("club_id", club.id).eq("id", filters.branch).is("archived_at", null).maybeSingle();
+  if (branch.error) { console.error("[fees] reminder branch failed", { code: branch.error.code, message: branch.error.message }); return { ok: false, error: REMINDER_ERROR }; }
+  if (!branch.data) return { ok: false, error: "This branch is no longer available. Choose another branch." };
+
+  const [summary, students] = await Promise.all([feeSummary(club.id, filters), outstandingStudentCount(club.id, filters)]);
+  if (!summary.ok || !students.ok) return { ok: false, error: REMINDER_ERROR };
+  return { ok: true, fees: summary.count, students: students.students, outstandingSen: summary.outstanding.toString() };
 }
 
 export type GenerateResult = { ok: true; created: number; skipped: number; ineligible: number } | { ok: false; error: string };

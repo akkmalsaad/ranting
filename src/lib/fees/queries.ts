@@ -40,6 +40,26 @@ export async function feeSummary(clubId: string, f: FeeFilters) {
   return { ok: true as const, count: Number(r.fee_count), charged: BigInt(r.charged_sen), collected: BigInt(r.collected_sen), outstanding: BigInt(r.outstanding_sen), overdue: BigInt(r.overdue_sen) };
 }
 
+const STUDENT_PAGE = 1000;
+
+/**
+ * How many different students have an outstanding balance (> 0) in the scope, using the same
+ * `fee_list` scope as the list and summary (so a "billed for October" fee counts exactly as on the
+ * Fees page, whatever its type). Reads fee and student ids only, paged so a large scope is counted
+ * in full. PostgREST can only order an RPC's result by a selected column, so `id` is selected too.
+ */
+export async function outstandingStudentCount(clubId: string, f: FeeFilters) {
+  const { db } = await clubClient(clubId);
+  const students = new Set<string>();
+  for (let from = 0; from < 50 * STUDENT_PAGE; from += STUDENT_PAGE) {
+    const { data, error } = await db.rpc("fee_list", { ...scopeArgs(clubId, f), p_outstanding: true }).select("id, student_id").order("id").range(from, from + STUDENT_PAGE - 1);
+    if (error) { logFailure("fee_list (outstanding students)", error); return { ok: false as const }; }
+    for (const row of data) students.add(row.student_id);
+    if (data.length < STUDENT_PAGE) break;
+  }
+  return { ok: true as const, students: students.size };
+}
+
 /** Active, current students (for new charges), with their current branch and belt level. */
 export async function chargeableStudents(clubId: string) {
   const { db } = await clubClient(clubId);

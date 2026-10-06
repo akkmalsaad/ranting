@@ -2,7 +2,74 @@
 
 Updated 2026-10-04, Asia/Kuala_Lumpur (UTC+08:00). Agent: Claude Code.
 
-## Latest session: branch code badge on calendar chips (UI only) (2026-10-05)
+## Latest session: manual WhatsApp fee reminder (2026-10-06)
+
+- **Fees header:** a new "WhatsApp Reminder" button (outline, MessageCircle icon) after Add fee / Generate monthly fees. It opens "Send WhatsApp Reminder" (`components/fees/whatsapp-reminder-dialog.tsx`).
+  - Branch: `BranchSelect`, current branches only, no "All branches"; preselects the page's branch filter.
+  - Billing period: `MonthPicker`, defaulting to the page's month.
+  - Aggregated summary: students and RM outstanding.
+  - An editable Bahasa Melayu message (draft only; "Reset message").
+  - Cancel / Copy message / Open WhatsApp, plus the "You'll choose the branch group…" note.
+  - States: no branch chosen, loading, error with Try again, no fees charged, no outstanding fees (Open WhatsApp disabled), no active branches.
+- **Server action `feeReminderSummary`** (`fees/actions.ts`): `requireClub`, `feeReminderSchema` (uuid branch + month), and a check that the branch is a current branch of this club.
+  - Total from `fee_summary` (month + branch); distinct students from `fee_list` (`p_outstanding`, `student_id` only, paged by 1000).
+  - Returns counts and the total only. Errors are logged as code/message only; the user sees a friendly message.
+- **`lib/fees/reminder.ts`:** `feeReminderMessage` (the period in Malay, e.g. "Oktober 2026"; no names or amounts; signature omitted if the club name is blank) and `whatsappShareUrl` (`https://wa.me/?text=…`, no recipient, the same as the registration share).
+  - Opened as a link with `target=_blank`, so no popup blocker applies. Ranting never claims the message was sent.
+- **`form-dialog.tsx`:** trigger icon `"message"`.
+- **New test** `tests/fee-reminder.test.ts` (not run).
+- **No migration**; no WhatsApp credentials, group ids or schedules stored. **Checks:** none run, per the user.
+- **Fix (same day): "Unable to load outstanding fees" whenever a balance existed.**
+  - Cause: `fee_list(...).select("student_id").order("id")`. PostgREST can't order an RPC result by a column that isn't selected (HTTP 400, `42703 column record.id does not exist`). Reproduced with a harmless anon RPC.
+  - Fix: the reminder now uses the Fees page's own path, via `feeFilters` and `feeSummary`, plus the new `outstandingStudentCount` in `lib/fees/queries.ts`. That helper uses the same `scopeArgs`, selects `id, student_id` and orders by `id`.
+
+## Session: compact homepage Classes preview (marketing only) (2026-10-05)
+
+- **`ClassesPreview` is now a deliberately cropped calendar window,** not the full month.
+  - Inside the shared `PreviewFrame`: a compact toolbar (October 2026, BA/SB legend, small month/year selects, Today and arrows), abbreviated weekdays, and the edge of Wed plus Thu–Sun for three weeks, in a fixed `max-h-56` window (third week cut off).
+  - Real chips via `PreviewChip`. "Today" is Thu 8: completed and not-marked-completed classes before it, a today ring, and upcoming classes after.
+  - Container queries keep chips readable: Thu–Sat when narrow, Thu–Sun from 28rem, plus the Wed edge from 30rem.
+  - Height lands close to `FeesPreview` (~395px vs ~375px).
+- **`page.tsx`:** the `wide` layout was removed. Classes sits in the normal alternating grid (index 2: copy left, preview right, from lg) with the new three points.
+- The real Classes page and components are untouched. **Checks:** none run, per the user.
+
+## Session: homepage Classes showcase (marketing only) (2026-10-05)
+
+- **`ClassesPreview`** (`components/marketing/product-previews.tsx`) is now the full October 2026 month, built like the real Classes calendar: toolbar (month/year selects, Today, arrows, a two-branch legend), weekday header, today circle on Mon 5, greyed other-month days, chips with branch code badges, and the bottom legend with Malaysia time.
+  - Sample classes on BA (teal) and SB (violet): Silibus, Junior Class, Sparring, Olah Raga, Conditioning, Senior Class and Grading Preparation.
+  - Before today: completed and not-marked-completed classes; one cancelled class later in the month.
+  - Same `PreviewFrame` (Ranting icon plus "Sample data" pill) as the other previews.
+  - Below a 42rem container it switches to the app's phone layout: dots plus a "This week" list.
+- **`preview-chip.tsx`** gains `cancelled` and `unclosed`.
+- **`page.tsx`:** the Classes block uses the new heading and copy, with `wide`: copy above, preview at full width.
+- No data, Supabase or app-functionality changes. **Checks:** none run, per the user.
+
+## Session: public homepage redesign (marketing only) (2026-10-05)
+
+- **`src/app/page.tsx` rewritten:**
+  - Nav: Log in (ghost) and Start for free (primary, `/signup`).
+  - Navy hero with the new copy, one CTA block (Start for free plus "See how it works", which smooth-scrolls to `#product`), the trust line, and a dashboard preview on the right.
+  - Then: Features (6 cards), Product showcase (4 alternating blocks), disciplines chips, "Made for Malaysian clubs", the final navy CTA (Start for free / Log in) and the footer.
+- **Previews:** there are no screenshots in the repo, so `components/marketing/product-previews.tsx` builds them from real app pieces (FeeStatusPill, BranchCodeBadge, calendar chip via `preview-chip.tsx`, Badge, tokens) with sample data.
+  - Each frame is labelled "Sample data", is a single `role="img"` with a description, and its content is `inert`.
+  - Assets: `assets/ranting-web-banner.png`, `assets/ranting-icon.png` and `assets/cblub-placeholder.png`.
+- **`components/marketing/smooth-scroll-link.tsx`:** respects reduced motion, moves focus to the target, and is a plain anchor without JavaScript.
+- **Not done:** Privacy / Terms footer links, because no such pages exist (they need real legal text). "Start for free" copy is per the user; pricing is still undecided in AGENTS.md §1.
+- **Checks:** none run, per the user.
+
+## Session: club logo presentation + Ranting favicon (UI only) (2026-10-05)
+
+- **Club logo:**
+  - New `ClubLogoTile` (`clubs/club-logo.tsx`): a rounded white square. An uploaded logo is `object-contain` with 4px padding (never cropped); otherwise it shows the existing club placeholder.
+  - Sidebar club card: 40px → 52px (`size-13`).
+  - Dashboard header: a 48px (phone) / 64px tile before the title, via the new optional `PageHeader` `leading` slot. Other pages don't use the slot.
+  - Settings still uses the old `ClubLogo`.
+- **Favicon:** `src/app/favicon.ico` was the stock Create Next App icon, not BookFlow. A BookFlow icon in the tab is the browser's cached favicon for `localhost:3000`.
+  - Replaced with icons derived from `assets/ranting-icon.png` (trimmed and centred square): `favicon.ico` (16/32/48), new `icon.png` (512, transparent) and `apple-icon.png` (180, white).
+  - File-based App Router convention only; there's no `metadata.icons`, `public/` favicon or manifest.
+- **Checks:** none run, per the user.
+
+## Session: branch code badge on calendar chips (UI only) (2026-10-05)
 
 - **Cause:** the single-branch rule. `showBranchDetail` returned false for a one-branch club (or a branch filter), and the chip only rendered `· code` when it was true. The query and types already carried `short_code` (via `branchScope`, migration applied). In multi-branch views the code could also wrap out of line 2 when the line was narrow.
 - **New rule:**

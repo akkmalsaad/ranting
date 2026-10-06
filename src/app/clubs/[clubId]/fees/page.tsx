@@ -27,9 +27,10 @@ import { FeeSearch } from "@/components/fees/fee-search";
 import { FeeActionsMenu } from "@/components/fees/fee-actions-menu";
 import { AddFeeDialog, EditFeeForm } from "@/components/fees/add-fee-dialog";
 import { GenerateFeesDialog } from "@/components/fees/generate-fees-dialog";
+import { WhatsAppReminderDialog } from "@/components/fees/whatsapp-reminder-dialog";
 import { FeeModal, LinkReceiptForm, PaymentForm, ReasonForm } from "@/components/fees/fee-forms";
 import { loadClubCategories, loadClubSettings } from "@/lib/club-settings";
-import { addFeeBatch, editFee, generateMonthlyFees, linkFeeReceipt, previewMonthlyFees, recordFeePayment, reverseAllocation, voidFee } from "./actions";
+import { addFeeBatch, editFee, feeReminderSummary, generateMonthlyFees, linkFeeReceipt, previewMonthlyFees, recordFeePayment, reverseAllocation, voidFee } from "./actions";
 
 export const metadata = { title: "Fees" };
 
@@ -110,6 +111,7 @@ export default async function Fees({ params, searchParams }: PageProps<"/clubs/[
     <PageHeader title="Fees" description="Charges, payments and balances for your students." actions={<>
       <AddFeeDialog create={addFeeBatch.bind(null, club.id)} students={feeStudents} branches={activeBranches} today={today} month={filters.month || today.slice(0, 7)} branchId={filters.branch} />
       <GenerateFeesDialog preview={previewMonthlyFees.bind(null, club.id)} generate={generateMonthlyFees.bind(null, club.id)} branches={activeBranches} today={today} month={filters.month || today.slice(0, 7)} branchId={filters.branch} defaults={{ amountSen: settings.monthlyFeeSen, dueDay: settings.dueDay }} />
+      <WhatsAppReminderDialog summarize={feeReminderSummary.bind(null, club.id)} branches={activeBranches} clubName={club.name} today={today} month={filters.month || today.slice(0, 7)} branchId={filters.branch} />
     </>} />
     {!feeId && <Notice code={sp.notice} messages={notices} />}
 

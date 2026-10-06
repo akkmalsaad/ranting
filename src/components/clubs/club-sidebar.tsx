@@ -5,7 +5,7 @@ import { assets } from "@/lib/assets";
 import { signOut } from "@/app/auth/actions";
 import { ClubNav } from "@/components/clubs/club-nav";
 import { ClubSwitcher } from "@/components/clubs/club-switcher";
-import { ClubLogo } from "@/components/clubs/club-logo";
+import { ClubLogoTile } from "@/components/clubs/club-logo";
 
 type SidebarClub = { id: string; name: string; discipline: string; logo_path: string | null };
 
@@ -30,7 +30,7 @@ export function ClubSidebar({ club, clubs }: { club: SidebarClub; clubs: { id: s
   return (
     <div className="flex flex-1 flex-col">
       <div className="mt-7 flex items-center gap-3 rounded-2xl bg-white/[0.06] p-3">
-        <ClubLogo club={club} className="size-10 shrink-0 rounded-xl bg-white object-cover" />
+        <ClubLogoTile club={club} sizes="52px" className="size-13" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-white">{club.name}</p>
           <p className="truncate text-xs text-white/60">{club.discipline}</p>

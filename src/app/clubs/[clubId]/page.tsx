@@ -13,7 +13,7 @@ import { InitialsAvatar } from "@/components/initials-avatar";
 import { Notice } from "@/components/notice";
 import { Modal } from "@/components/ui/modal";
 import { ClubProfileForm, EditClubProfileDialog } from "@/components/clubs/club-profile-form";
-import { clubLogoSrc } from "@/components/clubs/club-logo";
+import { ClubLogoTile, clubLogoSrc } from "@/components/clubs/club-logo";
 import { profileChecklist } from "@/components/clubs/profile-completion";
 import { DashboardBranchFilter } from "@/components/clubs/dashboard-branch-filter";
 import { listBeltLevels } from "@/lib/belt-levels";
@@ -107,6 +107,7 @@ export default async function Dashboard({ params, searchParams }: PageProps<"/cl
     <PageHeader
       title="Dashboard"
       description={`${club.name} · ${club.discipline}`}
+      leading={<ClubLogoTile club={club} className="size-12 sm:size-16 sm:rounded-2xl" />}
       actions={<DashboardBranchFilter base={base} selected={scope.id} branches={scope.options} branchCount={branches.error ? null : branches.count} />}
     />
     <Notice code={sp.notice} messages={{ ...notices, "created-many": createdMany }} />
